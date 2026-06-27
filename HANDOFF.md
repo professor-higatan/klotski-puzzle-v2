@@ -14,7 +14,7 @@
 ## 技術スタック
 
 - バニラ HTML / CSS / JavaScript（フレームワークなし）
-- データ: `levels.json`（全6レベル＋解法を内包）
+- データ: `levels.json`（全10レベル＋解法を内包）
 - 進行保存: `localStorage`（キー: `klotski-progress-v1`）
 - キャッシュ対策: `?v=N` クエリ + `Cache-Control: no-cache`
 
@@ -25,7 +25,7 @@ klotski-puzzle/
 ├── index.html              # レベル選択画面 + ゲーム画面
 ├── styles.css              # モバイル向けスタイル
 ├── app.js                  # ゲームロジック・UI・進行管理
-├── levels.json             # 6レベル定義＋各レベルの solution（約56KB）
+├── levels.json             # 10レベル定義＋各レベルの solution
 ├── puzzle.json             # 元の単一パズル定義（レベル6の初期配置と同等）
 ├── solution.json           # レベル6フル解法116手（levels.json 生成の元）
 ├── scripts/solve_levels.py # levels.json 再生成スクリプト
@@ -40,7 +40,7 @@ klotski-puzzle/
 | 手数・タイマー | ✅ |
 | 戻す / 最初から | ✅ |
 | 参りました（正解実演） | ✅ レベルごと |
-| 6レベル制 | ✅ |
+| 10レベル制 | ✅ |
 | クリアで次レベル解放 | ✅ |
 | 個別レベル選択 | ✅ 解放済みはいつでも |
 | 続きからボタン | ✅ |
@@ -53,11 +53,15 @@ klotski-puzzle/
 | ID | 名前 | 残り手数 |
 |----|------|----------|
 | 1 | はじめの一歩 | 10手 |
-| 2 | ゴール前 | 20手 |
-| 3 | 道中 | 40手 |
-| 4 | 本格 | 66手 |
-| 5 | 挑戦 | 96手 |
-| 6 | 横刀立馬 | 116手 |
+| 2 | あと少し | 15手 |
+| 3 | ゴール前 | 20手 |
+| 4 | 半分くらい | 30手 |
+| 5 | 道中 | 40手 |
+| 6 | 本番前 | 55手 |
+| 7 | 本格 | 66手 |
+| 8 | 熱くなってきた | 80手 |
+| 9 | 挑戦 | 96手 |
+| 10 | 横刀立馬 | 116手 |
 
 ### levels.json の再生成
 
@@ -71,7 +75,7 @@ python3 scripts/solve_levels.py
 ## 操作・スワイプの主要パラメータ（app.js）
 
 ```javascript
-const APP_VERSION = '8';
+const APP_VERSION = '9';
 const PROGRESS_KEY = 'klotski-progress-v1';
 
 TRACKING_GAIN = 1.5      // 指に対する追従速度

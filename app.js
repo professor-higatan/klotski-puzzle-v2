@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '8';
+  const APP_VERSION = '9';
   const PROGRESS_KEY = 'klotski-progress-v1';
 
   let levelsData = null;

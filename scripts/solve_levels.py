@@ -36,11 +36,15 @@ SHARED = {
 
 LEVEL_META = [
     {'id': 1, 'name_ja': 'はじめの一歩', 'name': 'First Step', 'description': 'ゴールまであと少し！スワイプの練習にぴったり。', 'skip': 106},
-    {'id': 2, 'name_ja': 'ゴール前', 'name': 'Near Goal', 'description': '★が出口のすぐ上。あと一息！', 'skip': 96},
-    {'id': 3, 'name_ja': '道中', 'name': 'Midway', 'description': '半分くらい進んだところから。', 'skip': 76},
-    {'id': 4, 'name_ja': '本格', 'name': 'Standard', 'description': 'ちょっと難しくなってきた。', 'skip': 50},
-    {'id': 5, 'name_ja': '挑戦', 'name': 'Challenge', 'description': 'かなり手強い。粘り強く！', 'skip': 20},
-    {'id': 6, 'name_ja': '横刀立馬', 'name': 'Horizontal Blade', 'description': '有名な最難関。クリアできたら達人！', 'skip': 0},
+    {'id': 2, 'name_ja': 'あと少し', 'name': 'Almost There', 'description': '出口が見えてきた。もう一息！', 'skip': 101},
+    {'id': 3, 'name_ja': 'ゴール前', 'name': 'Near Goal', 'description': '★が出口のすぐ上。あと一息！', 'skip': 96},
+    {'id': 4, 'name_ja': '半分くらい', 'name': 'Halfway', 'description': '正解の半分くらい進んだところから。', 'skip': 86},
+    {'id': 5, 'name_ja': '道中', 'name': 'Midway', 'description': '半分くらい進んだところから。', 'skip': 76},
+    {'id': 6, 'name_ja': '本番前', 'name': 'Warm-up', 'description': '本格的な手数に入る前の準備運動。', 'skip': 61},
+    {'id': 7, 'name_ja': '本格', 'name': 'Standard', 'description': 'ちょっと難しくなってきた。', 'skip': 50},
+    {'id': 8, 'name_ja': '熱くなってきた', 'name': 'Heating Up', 'description': '手数が増えてきた。集中しよう！', 'skip': 36},
+    {'id': 9, 'name_ja': '挑戦', 'name': 'Challenge', 'description': 'かなり手強い。粘り強く！', 'skip': 20},
+    {'id': 10, 'name_ja': '横刀立馬', 'name': 'Horizontal Blade', 'description': '有名な最難関。クリアできたら達人！', 'skip': 0},
 ]
 
 
