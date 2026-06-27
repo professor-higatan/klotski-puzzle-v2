@@ -198,6 +198,68 @@ body {
   padding: 16px 32px;
 }
 
+.surrender-btn {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  font-size: 0.95rem;
+}
+
+.surrender-btn.hidden {
+  display: none;
+}
+
+.demo-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 215, 0, 0.12);
+  border: 1px solid rgba(255, 215, 0, 0.25);
+}
+
+.demo-banner.hidden {
+  display: none;
+}
+
+#demo-status {
+  font-size: 0.9rem;
+  color: #ffd700;
+  font-weight: 600;
+}
+
+.demo-stop-btn {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.piece.demo-highlight {
+  animation: none;
+  box-shadow:
+    0 0 0 3px #ffd700,
+    0 6px 16px rgba(255, 215, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  z-index: 5;
+}
+
+.piece.demo-slide {
+  transition: left 0.28s ease-out, top 0.28s ease-out, transform 0.28s ease-out;
+}
+
+body.is-demonstrating .piece {
+  pointer-events: none;
+}
+
 .hint {
   font-size: 0.8rem;
   color: #5a6a8a;

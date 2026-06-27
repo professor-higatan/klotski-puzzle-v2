@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '6';
+  const APP_VERSION = '7';
 
   let config = null;
   let pieces = [];
@@ -14,6 +14,11 @@
   let activeDrag = null;
   let initialized = false;
   let boardPointerHandlers = null;
+  let solution = null;
+  let demonstrating = false;
+  let demoAbort = false;
+
+  const DEMO_MOVE_MS = 300;
 
   const TRACKING_GAIN = 1.5;
   const SWIPE_THRESHOLD = 10;
@@ -33,6 +38,10 @@
   const winOverlay = document.getElementById('win-overlay');
   const winStatsEl = document.getElementById('win-stats');
   const playAgainBtn = document.getElementById('play-again-btn');
+  const surrenderBtn = document.getElementById('surrender-btn');
+  const demoBanner = document.getElementById('demo-banner');
+  const demoStatusEl = document.getElementById('demo-status');
+  const stopDemoBtn = document.getElementById('stop-demo-btn');
   const confettiCanvas = document.getElementById('confetti-canvas');
 
   const DIRS = {
@@ -133,9 +142,113 @@
     return JSON.parse(JSON.stringify(obj));
   }
 
+  function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  function setDemoUI(active) {
+    demonstrating = active;
+    document.body.classList.toggle('is-demonstrating', active);
+    demoBanner.classList.toggle('hidden', !active);
+    surrenderBtn.classList.toggle('hidden', active);
+    undoBtn.disabled = active || history.length === 0;
+    resetBtn.disabled = active;
+    surrenderBtn.disabled = active;
+  }
+
+  async function loadSolution() {
+    if (solution) return solution;
+    const res = await fetch(`solution.json?v=${APP_VERSION}`);
+    if (!res.ok) throw new Error('solution.json load failed');
+    solution = await res.json();
+    return solution;
+  }
+
+  async function animateDemoMove(pieceId, direction) {
+    if (demoAbort) return false;
+    const piece = pieces.find((p) => p.id === pieceId);
+    if (!piece) return false;
+    const { dc, dr } = DIRS[direction];
+    if (!canMove(piece, dc, dr)) return false;
+
+    const el = boardEl.querySelector(`[data-id="${pieceId}"]`);
+    if (!el) return false;
+
+    const gap = config.board.gap_px;
+    const cellSize = getCellSize();
+    const step = cellSize + gap;
+    const newCol = piece.position.col + dc;
+    const newRow = piece.position.row + dr;
+
+    el.classList.add('demo-highlight', 'demo-slide');
+    el.style.left = gap + newCol * step + 'px';
+    el.style.top = gap + newRow * step + 'px';
+
+    await sleep(DEMO_MOVE_MS);
+    if (demoAbort) return false;
+
+    piece.position.col = newCol;
+    piece.position.row = newRow;
+    moveCount++;
+    updateStats();
+    render();
+    return true;
+  }
+
+  async function startDemo() {
+    if (demonstrating || !config) return;
+
+    clearActiveDrag();
+    demoAbort = false;
+    setDemoUI(true);
+
+    pieces = deepClone(initialPieces);
+    history = [];
+    moveCount = 0;
+    elapsedSeconds = 0;
+    won = false;
+    winOverlay.classList.add('hidden');
+    updateStats();
+    if (timerInterval) clearInterval(timerInterval);
+    render();
+
+    try {
+      const sol = await loadSolution();
+      demoStatusEl.textContent = '正解の動きをお見せします…';
+      await sleep(600);
+
+      for (let i = 0; i < sol.moves.length; i++) {
+        if (demoAbort) break;
+        const { pieceId, direction } = sol.moves[i];
+        demoStatusEl.textContent = `正解再生中… ${i + 1} / ${sol.total || sol.moves.length}`;
+        await animateDemoMove(pieceId, direction);
+      }
+
+      if (!demoAbort) {
+        checkWin();
+        demoStatusEl.textContent = won
+          ? 'クリア！これが正解の動きです'
+          : '再生が終わりました';
+        await sleep(won ? 1200 : 800);
+      }
+    } catch (err) {
+      console.error(err);
+      demoStatusEl.textContent = '正解の読み込みに失敗しました';
+      await sleep(1500);
+    }
+
+    setDemoUI(false);
+    if (!won && !timerInterval) startTimer();
+  }
+
+  function stopDemo() {
+    demoAbort = true;
+  }
+
   function resetGame(keepOverlay) {
     if (!config) return;
 
+    stopDemo();
     clearActiveDrag();
     pieces = deepClone(initialPieces);
     history = [];
@@ -227,7 +340,7 @@
   }
 
   function movePiece(pieceId, direction) {
-    if (won) return false;
+    if (won || demonstrating) return false;
     const piece = pieces.find((p) => p.id === pieceId);
     if (!piece) return false;
     const { dc, dr } = DIRS[direction];
@@ -437,7 +550,7 @@
 
   function setupPieceInteraction(el, pieceId) {
     el.addEventListener('pointerdown', (e) => {
-      if (won || activeDrag) return;
+      if (won || activeDrag || demonstrating) return;
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       e.preventDefault();
 
@@ -468,6 +581,8 @@
     undoBtn.addEventListener('click', undo);
     resetBtn.addEventListener('click', () => resetGame());
     playAgainBtn.addEventListener('click', () => resetGame());
+    surrenderBtn.addEventListener('click', startDemo);
+    stopDemoBtn.addEventListener('click', stopDemo);
 
     window.addEventListener('resize', () => {
       if (initialized) render();
