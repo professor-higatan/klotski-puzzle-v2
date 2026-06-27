@@ -28,7 +28,7 @@ body {
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
-#app {
+.screen {
   width: 100%;
   max-width: 420px;
   padding: 16px;
@@ -36,6 +36,153 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 12px;
+}
+
+.screen.hidden {
+  display: none;
+}
+
+.continue-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #2a9d8f, #1d6fb8);
+  font-size: 1.05rem;
+  padding: 16px;
+}
+
+.continue-btn.hidden {
+  display: none;
+}
+
+.level-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  width: 100%;
+}
+
+.level-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 16px 14px;
+  border: none;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.12s, background 0.15s;
+  min-height: 96px;
+}
+
+.level-card:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.level-card.unlocked {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.level-card.cleared {
+  border: 1px solid rgba(255, 215, 0, 0.35);
+}
+
+.level-card.locked {
+  opacity: 0.45;
+  cursor: default;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.level-card-num {
+  font-size: 0.75rem;
+  color: #8892b0;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.level-card-name {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.level-card-moves {
+  font-size: 0.75rem;
+  color: #6a7a9a;
+}
+
+.level-card-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 1rem;
+}
+
+.game-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+}
+
+.back-btn {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.game-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.level-label {
+  font-size: 0.75rem;
+  color: #8892b0;
+  font-weight: 700;
+}
+
+.level-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #ffd700, #ff6b6b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.win-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.win-actions .control-btn {
+  width: 100%;
+}
+
+.win-actions .control-btn.hidden {
+  display: none;
+}
+
+#win-level-name {
+  margin-bottom: 8px;
+}
+
+#win-stats {
+  margin-bottom: 20px;
 }
 
 .header {

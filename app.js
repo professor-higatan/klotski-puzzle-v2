@@ -1,9 +1,15 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '7';
+  const APP_VERSION = '8';
+  const PROGRESS_KEY = 'klotski-progress-v1';
 
+  let levelsData = null;
   let config = null;
+  let solution = null;
+  let currentLevelId = null;
+  let progress = { maxUnlocked: 1, cleared: [], lastLevel: 1 };
+
   let pieces = [];
   let initialPieces = [];
   let history = [];
@@ -14,12 +20,10 @@
   let activeDrag = null;
   let initialized = false;
   let boardPointerHandlers = null;
-  let solution = null;
   let demonstrating = false;
   let demoAbort = false;
 
   const DEMO_MOVE_MS = 300;
-
   const TRACKING_GAIN = 1.5;
   const SWIPE_THRESHOLD = 10;
   const FLICK_VELOCITY = 0.4;
@@ -30,14 +34,24 @@
   const DRAG_SCALE = 1.03;
   const SNAP_BACK_MS = 80;
 
+  const levelSelectScreen = document.getElementById('level-select-screen');
+  const gameScreen = document.getElementById('game-screen');
+  const levelGrid = document.getElementById('level-grid');
+  const continueBtn = document.getElementById('continue-btn');
+  const backBtn = document.getElementById('back-btn');
+  const levelLabelEl = document.getElementById('level-label');
+  const levelTitleEl = document.getElementById('level-title');
   const boardEl = document.getElementById('board');
   const moveCountEl = document.getElementById('move-count');
   const timerEl = document.getElementById('timer');
   const undoBtn = document.getElementById('undo-btn');
   const resetBtn = document.getElementById('reset-btn');
   const winOverlay = document.getElementById('win-overlay');
+  const winLevelNameEl = document.getElementById('win-level-name');
   const winStatsEl = document.getElementById('win-stats');
+  const nextLevelBtn = document.getElementById('next-level-btn');
   const playAgainBtn = document.getElementById('play-again-btn');
+  const toLevelsBtn = document.getElementById('to-levels-btn');
   const surrenderBtn = document.getElementById('surrender-btn');
   const demoBanner = document.getElementById('demo-banner');
   const demoStatusEl = document.getElementById('demo-status');
@@ -50,6 +64,95 @@
     left: { dc: -1, dr: 0 },
     right: { dc: 1, dr: 0 },
   };
+
+  function loadProgress() {
+    try {
+      const raw = localStorage.getItem(PROGRESS_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      progress.maxUnlocked = Math.max(1, saved.maxUnlocked || 1);
+      progress.cleared = Array.isArray(saved.cleared) ? saved.cleared : [];
+      progress.lastLevel = saved.lastLevel || 1;
+    } catch (_) {}
+  }
+
+  function saveProgress() {
+    localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+  }
+
+  function showScreen(name) {
+    levelSelectScreen.classList.toggle('hidden', name !== 'select');
+    gameScreen.classList.toggle('hidden', name !== 'game');
+  }
+
+  function getLevel(id) {
+    return levelsData.levels.find((l) => l.id === id);
+  }
+
+  function getContinueLevel() {
+    const sorted = levelsData.levels.map((l) => l.id).sort((a, b) => a - b);
+    for (const id of sorted) {
+      if (id <= progress.maxUnlocked && !progress.cleared.includes(id)) return id;
+    }
+    return Math.min(progress.maxUnlocked, sorted[sorted.length - 1]);
+  }
+
+  function renderLevelSelect() {
+    levelGrid.innerHTML = '';
+    const continueLevel = getContinueLevel();
+    const hasUncleared = levelsData.levels.some(
+      (l) => l.id <= progress.maxUnlocked && !progress.cleared.includes(l.id)
+    );
+    continueBtn.classList.toggle('hidden', !hasUncleared);
+
+    for (const level of levelsData.levels) {
+      const unlocked = level.id <= progress.maxUnlocked;
+      const cleared = progress.cleared.includes(level.id);
+      const btn = document.createElement('button');
+      btn.className = 'level-card' + (unlocked ? ' unlocked' : ' locked') + (cleared ? ' cleared' : '');
+      btn.type = 'button';
+      btn.disabled = !unlocked;
+      btn.innerHTML =
+        `<span class="level-card-num">レベル ${level.id}</span>` +
+        `<span class="level-card-name">${level.name_ja}</span>` +
+        `<span class="level-card-moves">正解 ${level.solution.total} 手</span>` +
+        `<span class="level-card-badge">${cleared ? '✅' : unlocked ? '▶' : '🔒'}</span>`;
+      if (unlocked) {
+        btn.addEventListener('click', () => startLevel(level.id));
+      }
+      levelGrid.appendChild(btn);
+    }
+
+    continueBtn.onclick = () => startLevel(continueLevel);
+  }
+
+  function updateLevelHeader() {
+    const level = getLevel(currentLevelId);
+    if (!level) return;
+    levelLabelEl.textContent = `レベル ${level.id}`;
+    levelTitleEl.textContent = level.name_ja;
+    document.title = `華容道 Lv.${level.id}`;
+  }
+
+  function startLevel(levelId) {
+    if (levelId > progress.maxUnlocked) return;
+    const level = getLevel(levelId);
+    if (!level) return;
+
+    stopDemo();
+    clearActiveDrag();
+    currentLevelId = levelId;
+    config = level;
+    solution = level.solution;
+    initialPieces = deepClone(level.pieces);
+    progress.lastLevel = levelId;
+    saveProgress();
+
+    updateLevelHeader();
+    showScreen('game');
+    resetGame(false);
+    if (!timerInterval) startTimer();
+  }
 
   function showBoardStatus(message, isError) {
     boardEl.innerHTML = '';
@@ -68,14 +171,11 @@
       e.preventDefault();
       activeDrag.lastX = e.clientX;
       activeDrag.lastY = e.clientY;
-
       const dx = activeDrag.lastX - activeDrag.startX;
       const dy = activeDrag.lastY - activeDrag.startY;
-
       if (!activeDrag.axis && (Math.abs(dx) > AXIS_LOCK || Math.abs(dy) > AXIS_LOCK)) {
         activeDrag.axis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
       }
-
       updateDragVisuals();
     };
 
@@ -92,7 +192,6 @@
     document.addEventListener('pointermove', onMove, { passive: false });
     document.addEventListener('pointerup', onUp);
     document.addEventListener('pointercancel', onCancel);
-
     boardPointerHandlers = { onMove, onUp, onCancel };
   }
 
@@ -120,21 +219,22 @@
   async function init() {
     try {
       showBoardStatus('読み込み中…');
-      const res = await fetch(`puzzle.json?v=${APP_VERSION}`);
-      if (!res.ok) throw new Error(`puzzle.json の読み込みに失敗しました (${res.status})`);
-
-      config = await res.json();
-      if (!config?.board?.cols || !Array.isArray(config.pieces)) {
-        throw new Error('puzzle.json の形式が正しくありません');
+      loadProgress();
+      const res = await fetch(`levels.json?v=${APP_VERSION}`);
+      if (!res.ok) throw new Error('levels.json の読み込みに失敗しました');
+      levelsData = await res.json();
+      if (!Array.isArray(levelsData?.levels) || levelsData.levels.length === 0) {
+        throw new Error('levels.json の形式が正しくありません');
       }
-
-      initialPieces = deepClone(config.pieces);
-      resetGame(false);
+      progress.maxUnlocked = Math.min(progress.maxUnlocked, levelsData.levels.length);
       bindEvents();
+      renderLevelSelect();
+      showScreen('select');
       initialized = true;
     } catch (err) {
       console.error(err);
-      showBoardStatus('盤面の読み込みに失敗しました。ページを再読み込みしてください。', true);
+      showBoardStatus('読み込みに失敗しました。ページを再読み込みしてください。', true);
+      showScreen('game');
     }
   }
 
@@ -153,15 +253,7 @@
     surrenderBtn.classList.toggle('hidden', active);
     undoBtn.disabled = active || history.length === 0;
     resetBtn.disabled = active;
-    surrenderBtn.disabled = active;
-  }
-
-  async function loadSolution() {
-    if (solution) return solution;
-    const res = await fetch(`solution.json?v=${APP_VERSION}`);
-    if (!res.ok) throw new Error('solution.json load failed');
-    solution = await res.json();
-    return solution;
+    backBtn.disabled = active;
   }
 
   async function animateDemoMove(pieceId, direction) {
@@ -196,7 +288,7 @@
   }
 
   async function startDemo() {
-    if (demonstrating || !config) return;
+    if (demonstrating || !config || !solution) return;
 
     clearActiveDrag();
     demoAbort = false;
@@ -213,31 +305,30 @@
     render();
 
     try {
-      const sol = await loadSolution();
       demoStatusEl.textContent = '正解の動きをお見せします…';
       await sleep(600);
 
-      for (let i = 0; i < sol.moves.length; i++) {
+      const moves = solution.moves;
+      for (let i = 0; i < moves.length; i++) {
         if (demoAbort) break;
-        const { pieceId, direction } = sol.moves[i];
-        demoStatusEl.textContent = `正解再生中… ${i + 1} / ${sol.total || sol.moves.length}`;
+        const { pieceId, direction } = moves[i];
+        demoStatusEl.textContent = `正解再生中… ${i + 1} / ${solution.total || moves.length}`;
         await animateDemoMove(pieceId, direction);
       }
 
       if (!demoAbort) {
         checkWin();
-        demoStatusEl.textContent = won
-          ? 'クリア！これが正解の動きです'
-          : '再生が終わりました';
+        demoStatusEl.textContent = won ? 'クリア！これが正解の動きです' : '再生が終わりました';
         await sleep(won ? 1200 : 800);
       }
     } catch (err) {
       console.error(err);
-      demoStatusEl.textContent = '正解の読み込みに失敗しました';
+      demoStatusEl.textContent = '正解の再生に失敗しました';
       await sleep(1500);
     }
 
     setDemoUI(false);
+    backBtn.disabled = false;
     if (!won && !timerInterval) startTimer();
   }
 
@@ -247,7 +338,6 @@
 
   function resetGame(keepOverlay) {
     if (!config) return;
-
     stopDemo();
     clearActiveDrag();
     pieces = deepClone(initialPieces);
@@ -262,7 +352,6 @@
 
     updateStats();
     undoBtn.disabled = true;
-
     if (timerInterval) clearInterval(timerInterval);
     startTimer();
     render();
@@ -305,29 +394,25 @@
 
     if (dc === 1) {
       for (let r = 0; r < piece.height; r++) {
-        const nc = col + piece.width;
-        if (nc >= config.board.cols || occ[row + r][nc]) return false;
+        if (col + piece.width >= config.board.cols || occ[row + r][col + piece.width]) return false;
       }
       return true;
     }
     if (dc === -1) {
       for (let r = 0; r < piece.height; r++) {
-        const nc = col - 1;
-        if (nc < 0 || occ[row + r][nc]) return false;
+        if (col - 1 < 0 || occ[row + r][col - 1]) return false;
       }
       return true;
     }
     if (dr === 1) {
       for (let c = 0; c < piece.width; c++) {
-        const nr = row + piece.height;
-        if (nr >= config.board.rows || occ[nr][col + c]) return false;
+        if (row + piece.height >= config.board.rows || occ[row + piece.height][col + c]) return false;
       }
       return true;
     }
     if (dr === -1) {
       for (let c = 0; c < piece.width; c++) {
-        const nr = row - 1;
-        if (nr < 0 || occ[nr][col + c]) return false;
+        if (row - 1 < 0 || occ[row - 1][col + c]) return false;
       }
       return true;
     }
@@ -367,6 +452,18 @@
     render();
   }
 
+  function markLevelCleared() {
+    if (!progress.cleared.includes(currentLevelId)) {
+      progress.cleared.push(currentLevelId);
+      progress.cleared.sort((a, b) => a - b);
+    }
+    const maxId = levelsData.levels.length;
+    if (currentLevelId < maxId) {
+      progress.maxUnlocked = Math.max(progress.maxUnlocked, currentLevelId + 1);
+    }
+    saveProgress();
+  }
+
   function checkWin() {
     const goal = config.board.exit;
     const boss = pieces.find((p) => p.id === goal.target_piece_id);
@@ -377,23 +474,40 @@
     ) {
       won = true;
       clearInterval(timerInterval);
+      timerInterval = null;
+      markLevelCleared();
       showWin();
     }
   }
 
   function showWin() {
+    const level = getLevel(currentLevelId);
     const m = Math.floor(elapsedSeconds / 60);
     const s = elapsedSeconds % 60;
+    winLevelNameEl.textContent = level ? `レベル ${level.id}：${level.name_ja}` : '';
     winStatsEl.textContent = `${moveCount}手 / ${m}分${s}秒`;
+
+    const hasNext = currentLevelId < levelsData.levels.length;
+    nextLevelBtn.classList.toggle('hidden', !hasNext);
+
     winOverlay.classList.remove('hidden');
     launchConfetti();
+  }
+
+  function goToLevelSelect() {
+    stopDemo();
+    clearActiveDrag();
+    winOverlay.classList.add('hidden');
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = null;
+    renderLevelSelect();
+    showScreen('select');
   }
 
   function getCellSize() {
     const maxW = Math.min(window.innerWidth - 48, 400);
     const gap = config.board.gap_px;
-    const cols = config.board.cols;
-    return Math.floor((maxW - gap * (cols + 1)) / cols);
+    return Math.floor((maxW - gap * (config.board.cols + 1)) / config.board.cols);
   }
 
   function getStepSize() {
@@ -426,11 +540,9 @@
 
   function updateDragVisuals() {
     if (!activeDrag) return;
-
     const { el, startX, startY, lastX, lastY, axis, step, movableDirs } = activeDrag;
     const dx = lastX - startX;
     const dy = lastY - startY;
-
     let tx = 0;
     let ty = 0;
 
@@ -439,15 +551,12 @@
     } else if (axis === 'y') {
       ty = clampDragOffset(movableDirs, step, 'y', dy * TRACKING_GAIN);
     } else if (Math.abs(dx) > 0 || Math.abs(dy) > 0) {
-      const absDx = Math.abs(dx);
-      const absDy = Math.abs(dy);
-      if (absDx >= absDy) {
+      if (Math.abs(dx) >= Math.abs(dy)) {
         tx = clampDragOffset(movableDirs, step, 'x', dx * PRE_AXIS_FOLLOW * TRACKING_GAIN);
       } else {
         ty = clampDragOffset(movableDirs, step, 'y', dy * PRE_AXIS_FOLLOW * TRACKING_GAIN);
       }
     }
-
     applyDragTransform(el, tx, ty);
   }
 
@@ -459,11 +568,9 @@
     const cellSize = getCellSize();
     const cols = config.board.cols;
     const rows = config.board.rows;
-    const boardW = cols * cellSize + (cols + 1) * gap;
-    const boardH = rows * cellSize + (rows + 1) * gap;
 
-    boardEl.style.width = boardW + 'px';
-    boardEl.style.height = boardH + 'px';
+    boardEl.style.width = cols * cellSize + (cols + 1) * gap + 'px';
+    boardEl.style.height = rows * cellSize + (rows + 1) * gap + 'px';
     boardEl.style.background = config.board.background;
     boardEl.innerHTML = '';
 
@@ -494,12 +601,10 @@
       el.style.background = colorDef.fill;
       el.style.color = colorDef.label_text;
       el.style.border = `2px solid ${colorDef.stroke}`;
-
       if (p.label) el.textContent = p.label;
       if (p.is_goal_piece && config.ui_hints?.highlight_goal_piece) {
         el.classList.add('goal-piece');
       }
-
       setupPieceInteraction(el, p.id);
       boardEl.appendChild(el);
     }
@@ -509,12 +614,9 @@
     if (!axis) return false;
     const delta = axis === 'x' ? dx : dy;
     const abs = Math.abs(delta);
-
     if (abs >= SWIPE_THRESHOLD) return true;
     if (durationMs < MIN_DRAG_DURATION) return false;
-
-    const velocity = abs / durationMs;
-    return abs >= MIN_FLICK_DISTANCE && velocity >= FLICK_VELOCITY;
+    return abs >= MIN_FLICK_DISTANCE && abs / durationMs >= FLICK_VELOCITY;
   }
 
   function endDrag(commit) {
@@ -571,7 +673,6 @@
       el.classList.add('dragging');
       document.body.classList.add('is-dragging');
       applyDragTransform(el, 0, 0);
-
       try { el.setPointerCapture(e.pointerId); } catch (_) {}
       bindBoardPointerHandlers();
     });
@@ -583,22 +684,22 @@
     playAgainBtn.addEventListener('click', () => resetGame());
     surrenderBtn.addEventListener('click', startDemo);
     stopDemoBtn.addEventListener('click', stopDemo);
+    backBtn.addEventListener('click', goToLevelSelect);
+    toLevelsBtn.addEventListener('click', goToLevelSelect);
+    nextLevelBtn.addEventListener('click', () => {
+      winOverlay.classList.add('hidden');
+      startLevel(currentLevelId + 1);
+    });
 
     window.addEventListener('resize', () => {
-      if (initialized) render();
+      if (initialized && !levelSelectScreen.classList.contains('hidden')) return;
+      if (initialized && config) render();
     });
 
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         clearActiveDrag();
-        if (initialized) render();
-      }
-    });
-
-    window.addEventListener('pageshow', (e) => {
-      if (e.persisted) {
-        clearActiveDrag();
-        if (initialized) render();
+        if (initialized && config && gameScreen.classList.contains('hidden') === false) render();
       }
     });
   }
@@ -607,7 +708,6 @@
     const ctx = confettiCanvas.getContext('2d');
     confettiCanvas.width = window.innerWidth;
     confettiCanvas.height = window.innerHeight;
-
     const colors = ['#E63946', '#1D6FB8', '#F4C430', '#ffd700', '#ff6b6b', '#4ecdc4'];
     const particles = Array.from({ length: 150 }, () => ({
       x: Math.random() * confettiCanvas.width,

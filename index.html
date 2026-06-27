@@ -8,13 +8,29 @@
   <meta name="theme-color" content="#1a1a1a">
   <meta http-equiv="Cache-Control" content="no-cache">
   <title>華容道パズル</title>
-  <link rel="stylesheet" href="styles.css?v=7">
+  <link rel="stylesheet" href="styles.css?v=8">
 </head>
 <body>
-  <div id="app">
+  <div id="level-select-screen" class="screen">
     <header class="header">
       <h1 class="title">華容道</h1>
-      <p class="subtitle">★を下の出口まで運ぼう！</p>
+      <p class="subtitle">レベルを選んで★を出口まで運ぼう！</p>
+    </header>
+
+    <button id="continue-btn" class="control-btn continue-btn">▶ 続きから</button>
+
+    <div id="level-grid" class="level-grid" role="list" aria-label="レベル一覧"></div>
+
+    <p class="hint">レベル1から順にクリアすると次が解放されます</p>
+  </div>
+
+  <div id="game-screen" class="screen hidden">
+    <header class="header game-header">
+      <button id="back-btn" class="back-btn" aria-label="レベル選択へ">←</button>
+      <div class="game-header-text">
+        <p id="level-label" class="level-label">レベル 1</p>
+        <h1 id="level-title" class="level-title">はじめの一歩</h1>
+      </div>
     </header>
 
     <div class="stats">
@@ -53,12 +69,17 @@
     <div class="win-card">
       <div class="win-emoji">🎉</div>
       <h2>クリア！</h2>
+      <p id="win-level-name"></p>
       <p id="win-stats"></p>
-      <button id="play-again-btn" class="control-btn primary">もう一度</button>
+      <div class="win-actions">
+        <button id="next-level-btn" class="control-btn primary hidden">次のレベルへ ▶</button>
+        <button id="play-again-btn" class="control-btn">もう一度</button>
+        <button id="to-levels-btn" class="control-btn">レベル選択</button>
+      </div>
     </div>
   </div>
 
   <canvas id="confetti-canvas"></canvas>
-  <script src="app.js?v=7"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>
