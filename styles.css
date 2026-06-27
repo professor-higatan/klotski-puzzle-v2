@@ -138,7 +138,6 @@ body {
   z-index: 2;
   touch-action: none;
   will-change: transform;
-  contain: layout style;
   backface-visibility: hidden;
 }
 
@@ -153,7 +152,7 @@ body {
 }
 
 .piece.snap-back {
-  transition: transform 0.067s cubic-bezier(0.25, 0.9, 0.35, 1);
+  transition: transform 0.08s cubic-bezier(0.25, 0.9, 0.35, 1);
 }
 
 .piece.goal-piece {

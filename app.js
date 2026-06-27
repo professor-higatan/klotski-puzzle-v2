@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '5';
+  const APP_VERSION = '6';
 
   let config = null;
   let pieces = [];
@@ -13,14 +13,17 @@
   let won = false;
   let activeDrag = null;
   let initialized = false;
+  let boardPointerHandlers = null;
 
   const TRACKING_GAIN = 1.5;
-  const SWIPE_THRESHOLD = 8;
-  const FLICK_VELOCITY = 0.23;
-  const AXIS_LOCK = 2;
-  const PRE_AXIS_FOLLOW = 1;
+  const SWIPE_THRESHOLD = 10;
+  const FLICK_VELOCITY = 0.4;
+  const MIN_FLICK_DISTANCE = 6;
+  const MIN_DRAG_DURATION = 50;
+  const AXIS_LOCK = 4;
+  const PRE_AXIS_FOLLOW = 0.9;
   const DRAG_SCALE = 1.03;
-  const SNAP_BACK_MS = 67;
+  const SNAP_BACK_MS = 80;
 
   const boardEl = document.getElementById('board');
   const moveCountEl = document.getElementById('move-count');
@@ -48,7 +51,53 @@
     boardEl.appendChild(status);
   }
 
+  function bindBoardPointerHandlers() {
+    unbindBoardPointerHandlers();
+
+    const onMove = (e) => {
+      if (!activeDrag || e.pointerId !== activeDrag.pointerId) return;
+      e.preventDefault();
+      activeDrag.lastX = e.clientX;
+      activeDrag.lastY = e.clientY;
+
+      const dx = activeDrag.lastX - activeDrag.startX;
+      const dy = activeDrag.lastY - activeDrag.startY;
+
+      if (!activeDrag.axis && (Math.abs(dx) > AXIS_LOCK || Math.abs(dy) > AXIS_LOCK)) {
+        activeDrag.axis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
+      }
+
+      updateDragVisuals();
+    };
+
+    const onEnd = (e, commit) => {
+      if (!activeDrag || e.pointerId !== activeDrag.pointerId) return;
+      e.preventDefault();
+      unbindBoardPointerHandlers();
+      endDrag(commit);
+    };
+
+    const onUp = (e) => onEnd(e, true);
+    const onCancel = (e) => onEnd(e, false);
+
+    document.addEventListener('pointermove', onMove, { passive: false });
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onCancel);
+
+    boardPointerHandlers = { onMove, onUp, onCancel };
+  }
+
+  function unbindBoardPointerHandlers() {
+    if (!boardPointerHandlers) return;
+    const { onMove, onUp, onCancel } = boardPointerHandlers;
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+    document.removeEventListener('pointercancel', onCancel);
+    boardPointerHandlers = null;
+  }
+
   function clearActiveDrag() {
+    unbindBoardPointerHandlers();
     if (!activeDrag) return;
     const { el } = activeDrag;
     if (el) {
@@ -173,8 +222,8 @@
   }
 
   function directionFromDelta(dx, dy, axis) {
-    if (axis === 'x') return dx > 0 ? 'right' : 'left';
-    return dy > 0 ? 'down' : 'up';
+    if (axis === 'x') return dx >= 0 ? 'right' : 'left';
+    return dy >= 0 ? 'down' : 'up';
   }
 
   function movePiece(pieceId, direction) {
@@ -255,15 +304,11 @@
     const movable = movableDirs[dir];
     const abs = Math.abs(delta);
     if (movable) return sign * Math.min(abs, step);
-    return sign * Math.min(abs, step * 0.16);
+    return sign * Math.min(abs, step * 0.2);
   }
 
   function applyDragTransform(el, tx, ty) {
     el.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${DRAG_SCALE})`;
-  }
-
-  function amplifyDelta(delta) {
-    return delta * TRACKING_GAIN;
   }
 
   function updateDragVisuals() {
@@ -277,16 +322,16 @@
     let ty = 0;
 
     if (axis === 'x') {
-      tx = clampDragOffset(movableDirs, step, 'x', amplifyDelta(dx));
+      tx = clampDragOffset(movableDirs, step, 'x', dx * TRACKING_GAIN);
     } else if (axis === 'y') {
-      ty = clampDragOffset(movableDirs, step, 'y', amplifyDelta(dy));
-    } else {
+      ty = clampDragOffset(movableDirs, step, 'y', dy * TRACKING_GAIN);
+    } else if (Math.abs(dx) > 0 || Math.abs(dy) > 0) {
       const absDx = Math.abs(dx);
       const absDy = Math.abs(dy);
       if (absDx >= absDy) {
-        tx = clampDragOffset(movableDirs, step, 'x', amplifyDelta(dx * PRE_AXIS_FOLLOW));
+        tx = clampDragOffset(movableDirs, step, 'x', dx * PRE_AXIS_FOLLOW * TRACKING_GAIN);
       } else {
-        ty = clampDragOffset(movableDirs, step, 'y', amplifyDelta(dy * PRE_AXIS_FOLLOW));
+        ty = clampDragOffset(movableDirs, step, 'y', dy * PRE_AXIS_FOLLOW * TRACKING_GAIN);
       }
     }
 
@@ -350,14 +395,19 @@
   function shouldCommitMove(axis, dx, dy, durationMs) {
     if (!axis) return false;
     const delta = axis === 'x' ? dx : dy;
-    const velocity = Math.abs(delta) / Math.max(durationMs, 1);
-    return Math.abs(delta) >= SWIPE_THRESHOLD || velocity >= FLICK_VELOCITY;
+    const abs = Math.abs(delta);
+
+    if (abs >= SWIPE_THRESHOLD) return true;
+    if (durationMs < MIN_DRAG_DURATION) return false;
+
+    const velocity = abs / durationMs;
+    return abs >= MIN_FLICK_DISTANCE && velocity >= FLICK_VELOCITY;
   }
 
   function endDrag(commit) {
     if (!activeDrag) return;
 
-    const { el, pieceId, axis, startX, startY, pointerId, startTime, lastX, lastY } = activeDrag;
+    const { el, pieceId, axis, startX, startY, startTime, lastX, lastY, pointerId } = activeDrag;
     const dx = lastX - startX;
     const dy = lastY - startY;
     const durationMs = performance.now() - startTime;
@@ -367,8 +417,8 @@
 
     if (commit && shouldCommitMove(axis, dx, dy, durationMs)) {
       const dir = directionFromDelta(dx, dy, axis);
+      activeDrag = null;
       if (movePiece(pieceId, dir)) {
-        activeDrag = null;
         try { el.releasePointerCapture(pointerId); } catch (_) {}
         return;
       }
@@ -388,6 +438,7 @@
   function setupPieceInteraction(el, pieceId) {
     el.addEventListener('pointerdown', (e) => {
       if (won || activeDrag) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
       e.preventDefault();
 
       activeDrag = {
@@ -407,40 +458,9 @@
       el.classList.add('dragging');
       document.body.classList.add('is-dragging');
       applyDragTransform(el, 0, 0);
-      el.setPointerCapture(e.pointerId);
-    });
 
-    el.addEventListener('pointermove', (e) => {
-      if (!activeDrag || activeDrag.pieceId !== pieceId) return;
-      e.preventDefault();
-
-      activeDrag.lastX = e.clientX;
-      activeDrag.lastY = e.clientY;
-
-      const dx = activeDrag.lastX - activeDrag.startX;
-      const dy = activeDrag.lastY - activeDrag.startY;
-
-      if (!activeDrag.axis && (Math.abs(dx) > AXIS_LOCK || Math.abs(dy) > AXIS_LOCK)) {
-        activeDrag.axis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
-      }
-
-      updateDragVisuals();
-    });
-
-    el.addEventListener('pointerup', (e) => {
-      if (!activeDrag || activeDrag.pieceId !== pieceId) return;
-      e.preventDefault();
-      endDrag(true);
-    });
-
-    el.addEventListener('pointercancel', () => {
-      if (!activeDrag || activeDrag.pieceId !== pieceId) return;
-      endDrag(false);
-    });
-
-    el.addEventListener('lostpointercapture', () => {
-      if (!activeDrag || activeDrag.pieceId !== pieceId) return;
-      endDrag(false);
+      try { el.setPointerCapture(e.pointerId); } catch (_) {}
+      bindBoardPointerHandlers();
     });
   }
 
