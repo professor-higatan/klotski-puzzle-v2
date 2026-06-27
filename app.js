@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '3';
+  const APP_VERSION = '4';
 
   let config = null;
   let pieces = [];
@@ -14,8 +14,11 @@
   let activeDrag = null;
   let initialized = false;
 
-  const SWIPE_THRESHOLD = 28;
-  const AXIS_LOCK = 10;
+  const SWIPE_THRESHOLD = 12;
+  const FLICK_VELOCITY = 0.35;
+  const AXIS_LOCK = 3;
+  const PRE_AXIS_FOLLOW = 0.85;
+  const DRAG_SCALE = 1.03;
 
   const boardEl = document.getElementById('board');
   const moveCountEl = document.getElementById('move-count');
@@ -50,6 +53,7 @@
       el.classList.remove('dragging', 'snap-back');
       el.style.transform = '';
     }
+    document.body.classList.remove('is-dragging');
     activeDrag = null;
   }
 
@@ -232,13 +236,55 @@
     return getCellSize() + config.board.gap_px;
   }
 
-  function clampDragOffset(piece, axis, delta) {
-    const step = getStepSize();
+  function getMovableDirs(pieceId) {
+    const piece = pieces.find((p) => p.id === pieceId);
+    if (!piece) return {};
+    return {
+      up: canMove(piece, 0, -1),
+      down: canMove(piece, 0, 1),
+      left: canMove(piece, -1, 0),
+      right: canMove(piece, 1, 0),
+    };
+  }
+
+  function clampDragOffset(movableDirs, step, axis, delta) {
     const sign = Math.sign(delta) || 1;
     const dir = directionFromDelta(sign, sign, axis);
-    const movable = canMove(piece, DIRS[dir].dc, DIRS[dir].dr);
-    const max = movable ? step * 0.9 : step * 0.22;
-    return sign * Math.min(Math.abs(delta), max);
+    const movable = movableDirs[dir];
+    const abs = Math.abs(delta);
+    if (movable) return sign * Math.min(abs, step);
+    return sign * Math.min(abs, step * 0.16);
+  }
+
+  function applyDragTransform(el, tx, ty) {
+    el.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${DRAG_SCALE})`;
+  }
+
+  function updateDragVisuals() {
+    if (!activeDrag) return;
+
+    const { el, pieceId, startX, startY, lastX, lastY, axis, step, movableDirs } = activeDrag;
+    const dx = lastX - startX;
+    const dy = lastY - startY;
+
+    let tx = 0;
+    let ty = 0;
+
+    if (axis === 'x') {
+      tx = clampDragOffset(movableDirs, step, 'x', dx);
+    } else if (axis === 'y') {
+      ty = clampDragOffset(movableDirs, step, 'y', dy);
+    } else {
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+      if (absDx >= absDy) {
+        tx = clampDragOffset(movableDirs, step, 'x', dx * PRE_AXIS_FOLLOW);
+      } else {
+        ty = clampDragOffset(movableDirs, step, 'y', dy * PRE_AXIS_FOLLOW);
+      }
+    }
+
+    applyDragTransform(el, tx, ty);
   }
 
   function render() {
@@ -295,29 +341,41 @@
     }
   }
 
+  function shouldCommitMove(axis, dx, dy, durationMs) {
+    if (!axis) return false;
+    const delta = axis === 'x' ? dx : dy;
+    const velocity = Math.abs(delta) / Math.max(durationMs, 1);
+    return Math.abs(delta) >= SWIPE_THRESHOLD || velocity >= FLICK_VELOCITY;
+  }
+
   function endDrag(commit) {
     if (!activeDrag) return;
 
-    const { el, pieceId, axis, startX, startY, pointerId } = activeDrag;
-    const dx = activeDrag.lastX - startX;
-    const dy = activeDrag.lastY - startY;
+    const { el, pieceId, axis, startX, startY, pointerId, startTime, lastX, lastY } = activeDrag;
+    const dx = lastX - startX;
+    const dy = lastY - startY;
+    const durationMs = performance.now() - startTime;
 
     el.classList.remove('dragging');
-    el.style.transform = '';
-    activeDrag = null;
+    document.body.classList.remove('is-dragging');
 
-    if (commit && axis) {
-      const delta = axis === 'x' ? dx : dy;
-      if (Math.abs(delta) >= SWIPE_THRESHOLD) {
-        const dir = directionFromDelta(dx, dy, axis);
-        if (movePiece(pieceId, dir)) {
-          try { el.releasePointerCapture(pointerId); } catch (_) {}
-          return;
-        }
+    if (commit && shouldCommitMove(axis, dx, dy, durationMs)) {
+      const dir = directionFromDelta(dx, dy, axis);
+      if (movePiece(pieceId, dir)) {
+        activeDrag = null;
+        try { el.releasePointerCapture(pointerId); } catch (_) {}
+        return;
       }
     }
 
-    render();
+    el.classList.add('snap-back');
+    el.style.transform = 'translate3d(0, 0, 0) scale(1)';
+    setTimeout(() => {
+      el.classList.remove('snap-back');
+      el.style.transform = '';
+    }, 100);
+
+    activeDrag = null;
     try { el.releasePointerCapture(pointerId); } catch (_) {}
   }
 
@@ -334,35 +392,33 @@
         startY: e.clientY,
         lastX: e.clientX,
         lastY: e.clientY,
+        startTime: performance.now(),
         axis: null,
+        step: getStepSize(),
+        movableDirs: getMovableDirs(pieceId),
       };
 
       el.classList.add('dragging');
+      document.body.classList.add('is-dragging');
+      applyDragTransform(el, 0, 0);
       el.setPointerCapture(e.pointerId);
     });
 
     el.addEventListener('pointermove', (e) => {
       if (!activeDrag || activeDrag.pieceId !== pieceId) return;
+      e.preventDefault();
 
-      const dx = e.clientX - activeDrag.startX;
-      const dy = e.clientY - activeDrag.startY;
       activeDrag.lastX = e.clientX;
       activeDrag.lastY = e.clientY;
+
+      const dx = activeDrag.lastX - activeDrag.startX;
+      const dy = activeDrag.lastY - activeDrag.startY;
 
       if (!activeDrag.axis && (Math.abs(dx) > AXIS_LOCK || Math.abs(dy) > AXIS_LOCK)) {
         activeDrag.axis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
       }
 
-      if (!activeDrag.axis) return;
-
-      const piece = pieces.find((p) => p.id === pieceId);
-      const offset = activeDrag.axis === 'x'
-        ? clampDragOffset(piece, 'x', dx)
-        : clampDragOffset(piece, 'y', dy);
-
-      const tx = activeDrag.axis === 'x' ? offset : 0;
-      const ty = activeDrag.axis === 'y' ? offset : 0;
-      el.style.transform = `translate(${tx}px, ${ty}px)`;
+      updateDragVisuals();
     });
 
     el.addEventListener('pointerup', (e) => {

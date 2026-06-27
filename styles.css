@@ -12,6 +12,11 @@ html, body {
   touch-action: manipulation;
 }
 
+body.is-dragging {
+  touch-action: none;
+  overflow: hidden;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
   background: linear-gradient(160deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
@@ -126,26 +131,29 @@ body {
   font-size: 1.6rem;
   font-weight: 800;
   cursor: grab;
-  transition: transform 0.15s ease-out, box-shadow 0.12s;
+  transition: box-shadow 0.1s;
   box-shadow:
     0 3px 8px rgba(0, 0, 0, 0.35),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
   z-index: 2;
   touch-action: none;
   will-change: transform;
+  contain: layout style;
+  backface-visibility: hidden;
 }
 
 .piece.dragging {
   cursor: grabbing;
   transition: none;
+  animation: none;
   z-index: 10;
   box-shadow:
-    0 8px 20px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    0 10px 24px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 .piece.snap-back {
-  transition: transform 0.2s cubic-bezier(0.34, 1.2, 0.64, 1);
+  transition: transform 0.1s cubic-bezier(0.25, 0.9, 0.35, 1);
 }
 
 .piece.goal-piece {
