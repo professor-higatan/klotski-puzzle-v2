@@ -1,6 +1,8 @@
 (function () {
   'use strict';
 
+  const APP_VERSION = '3';
+
   let config = null;
   let pieces = [];
   let initialPieces = [];
@@ -10,6 +12,7 @@
   let elapsedSeconds = 0;
   let won = false;
   let activeDrag = null;
+  let initialized = false;
 
   const SWIPE_THRESHOLD = 28;
   const AXIS_LOCK = 10;
@@ -31,30 +34,67 @@
     right: { dc: 1, dr: 0 },
   };
 
+  function showBoardStatus(message, isError) {
+    boardEl.innerHTML = '';
+    const status = document.createElement('p');
+    status.id = 'board-status';
+    status.className = 'board-status' + (isError ? ' error' : '');
+    status.textContent = message;
+    boardEl.appendChild(status);
+  }
+
+  function clearActiveDrag() {
+    if (!activeDrag) return;
+    const { el } = activeDrag;
+    if (el) {
+      el.classList.remove('dragging', 'snap-back');
+      el.style.transform = '';
+    }
+    activeDrag = null;
+  }
+
   async function init() {
-    const res = await fetch('puzzle.json');
-    config = await res.json();
-    initialPieces = deepClone(config.pieces);
-    resetGame(false);
-    bindEvents();
-    render();
-    startTimer();
+    try {
+      showBoardStatus('読み込み中…');
+      const res = await fetch(`puzzle.json?v=${APP_VERSION}`);
+      if (!res.ok) throw new Error(`puzzle.json の読み込みに失敗しました (${res.status})`);
+
+      config = await res.json();
+      if (!config?.board?.cols || !Array.isArray(config.pieces)) {
+        throw new Error('puzzle.json の形式が正しくありません');
+      }
+
+      initialPieces = deepClone(config.pieces);
+      resetGame(false);
+      bindEvents();
+      initialized = true;
+    } catch (err) {
+      console.error(err);
+      showBoardStatus('盤面の読み込みに失敗しました。ページを再読み込みしてください。', true);
+    }
   }
 
   function deepClone(obj) {
     return JSON.parse(JSON.stringify(obj));
   }
 
-  function resetGame(keepOverlay = true) {
+  function resetGame(keepOverlay) {
+    if (!config) return;
+
+    clearActiveDrag();
     pieces = deepClone(initialPieces);
     history = [];
     moveCount = 0;
     elapsedSeconds = 0;
     won = false;
-    activeDrag = null;
-    if (keepOverlay) winOverlay.classList.add('hidden');
+
+    if (keepOverlay !== false) {
+      winOverlay.classList.add('hidden');
+    }
+
     updateStats();
     undoBtn.disabled = true;
+
     if (timerInterval) clearInterval(timerInterval);
     startTimer();
     render();
@@ -151,6 +191,7 @@
 
   function undo() {
     if (history.length === 0 || won) return;
+    clearActiveDrag();
     pieces = history.pop();
     moveCount = Math.max(0, moveCount - 1);
     undoBtn.disabled = history.length === 0;
@@ -188,8 +229,7 @@
   }
 
   function getStepSize() {
-    const gap = config.board.gap_px;
-    return getCellSize() + gap;
+    return getCellSize() + config.board.gap_px;
   }
 
   function clampDragOffset(piece, axis, delta) {
@@ -202,6 +242,7 @@
   }
 
   function render() {
+    if (!config) return;
     if (activeDrag) return;
 
     const gap = config.board.gap_px;
@@ -231,6 +272,8 @@
 
     for (const p of pieces) {
       const colorDef = config.colors[p.color];
+      if (!colorDef) continue;
+
       const el = document.createElement('div');
       el.className = 'piece';
       el.dataset.id = p.id;
@@ -243,7 +286,7 @@
       el.style.border = `2px solid ${colorDef.stroke}`;
 
       if (p.label) el.textContent = p.label;
-      if (p.is_goal_piece && config.ui_hints.highlight_goal_piece) {
+      if (p.is_goal_piece && config.ui_hints?.highlight_goal_piece) {
         el.classList.add('goal-piece');
       }
 
@@ -261,29 +304,20 @@
 
     el.classList.remove('dragging');
     el.style.transform = '';
+    activeDrag = null;
 
     if (commit && axis) {
       const delta = axis === 'x' ? dx : dy;
       if (Math.abs(delta) >= SWIPE_THRESHOLD) {
         const dir = directionFromDelta(dx, dy, axis);
         if (movePiece(pieceId, dir)) {
-          activeDrag = null;
           try { el.releasePointerCapture(pointerId); } catch (_) {}
           return;
         }
       }
     }
 
-    el.classList.add('snap-back');
-    requestAnimationFrame(() => {
-      el.style.transform = 'translate(0, 0)';
-      setTimeout(() => {
-        el.classList.remove('snap-back');
-        el.style.transform = '';
-      }, 200);
-    });
-
-    activeDrag = null;
+    render();
     try { el.releasePointerCapture(pointerId); } catch (_) {}
   }
 
@@ -341,13 +375,35 @@
       if (!activeDrag || activeDrag.pieceId !== pieceId) return;
       endDrag(false);
     });
+
+    el.addEventListener('lostpointercapture', () => {
+      if (!activeDrag || activeDrag.pieceId !== pieceId) return;
+      endDrag(false);
+    });
   }
 
   function bindEvents() {
     undoBtn.addEventListener('click', undo);
     resetBtn.addEventListener('click', () => resetGame());
     playAgainBtn.addEventListener('click', () => resetGame());
-    window.addEventListener('resize', render);
+
+    window.addEventListener('resize', () => {
+      if (initialized) render();
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        clearActiveDrag();
+        if (initialized) render();
+      }
+    });
+
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted) {
+        clearActiveDrag();
+        if (initialized) render();
+      }
+    });
   }
 
   function launchConfetti() {

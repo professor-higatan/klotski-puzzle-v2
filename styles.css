@@ -6,8 +6,9 @@
 }
 
 html, body {
-  height: 100%;
-  overflow: hidden;
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
   touch-action: manipulation;
 }
 
@@ -87,9 +88,21 @@ body {
   justify-content: center;
 }
 
+.board-status {
+  padding: 48px 16px;
+  text-align: center;
+  color: #8892b0;
+  font-size: 0.95rem;
+}
+
+.board-status.error {
+  color: #ff8a8a;
+}
+
 .board {
   position: relative;
   border-radius: 12px;
+  min-height: 120px;
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.4),
     inset 0 0 0 3px rgba(255, 255, 255, 0.05);

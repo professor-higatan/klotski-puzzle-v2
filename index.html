@@ -6,8 +6,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a1a">
+  <meta http-equiv="Cache-Control" content="no-cache">
   <title>華容道パズル</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body>
   <div id="app">
@@ -28,7 +29,9 @@
     </div>
 
     <div class="board-wrapper">
-      <div id="board" class="board" role="grid" aria-label="華容道の盤面"></div>
+      <div id="board" class="board" role="grid" aria-label="華容道の盤面">
+        <p id="board-status" class="board-status">読み込み中…</p>
+      </div>
     </div>
 
     <div class="controls">
@@ -49,6 +52,6 @@
   </div>
 
   <canvas id="confetti-canvas"></canvas>
-  <script src="app.js"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>
