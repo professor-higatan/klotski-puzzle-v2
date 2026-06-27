@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '4';
+  const APP_VERSION = '5';
 
   let config = null;
   let pieces = [];
@@ -14,11 +14,13 @@
   let activeDrag = null;
   let initialized = false;
 
-  const SWIPE_THRESHOLD = 12;
-  const FLICK_VELOCITY = 0.35;
-  const AXIS_LOCK = 3;
-  const PRE_AXIS_FOLLOW = 0.85;
+  const TRACKING_GAIN = 1.5;
+  const SWIPE_THRESHOLD = 8;
+  const FLICK_VELOCITY = 0.23;
+  const AXIS_LOCK = 2;
+  const PRE_AXIS_FOLLOW = 1;
   const DRAG_SCALE = 1.03;
+  const SNAP_BACK_MS = 67;
 
   const boardEl = document.getElementById('board');
   const moveCountEl = document.getElementById('move-count');
@@ -260,10 +262,14 @@
     el.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${DRAG_SCALE})`;
   }
 
+  function amplifyDelta(delta) {
+    return delta * TRACKING_GAIN;
+  }
+
   function updateDragVisuals() {
     if (!activeDrag) return;
 
-    const { el, pieceId, startX, startY, lastX, lastY, axis, step, movableDirs } = activeDrag;
+    const { el, startX, startY, lastX, lastY, axis, step, movableDirs } = activeDrag;
     const dx = lastX - startX;
     const dy = lastY - startY;
 
@@ -271,16 +277,16 @@
     let ty = 0;
 
     if (axis === 'x') {
-      tx = clampDragOffset(movableDirs, step, 'x', dx);
+      tx = clampDragOffset(movableDirs, step, 'x', amplifyDelta(dx));
     } else if (axis === 'y') {
-      ty = clampDragOffset(movableDirs, step, 'y', dy);
+      ty = clampDragOffset(movableDirs, step, 'y', amplifyDelta(dy));
     } else {
       const absDx = Math.abs(dx);
       const absDy = Math.abs(dy);
       if (absDx >= absDy) {
-        tx = clampDragOffset(movableDirs, step, 'x', dx * PRE_AXIS_FOLLOW);
+        tx = clampDragOffset(movableDirs, step, 'x', amplifyDelta(dx * PRE_AXIS_FOLLOW));
       } else {
-        ty = clampDragOffset(movableDirs, step, 'y', dy * PRE_AXIS_FOLLOW);
+        ty = clampDragOffset(movableDirs, step, 'y', amplifyDelta(dy * PRE_AXIS_FOLLOW));
       }
     }
 
@@ -373,7 +379,7 @@
     setTimeout(() => {
       el.classList.remove('snap-back');
       el.style.transform = '';
-    }, 100);
+    }, SNAP_BACK_MS);
 
     activeDrag = null;
     try { el.releasePointerCapture(pointerId); } catch (_) {}
