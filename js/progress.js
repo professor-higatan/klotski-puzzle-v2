@@ -1,24 +1,42 @@
 import { PROGRESS_KEY } from './constants.js';
 
-const DEFAULT_PROGRESS = { maxUnlocked: 1, cleared: [], lastLevel: 1 };
+const DEFAULT_PROGRESS = Object.freeze({
+  maxUnlocked: 1,
+  cleared: Object.freeze([]),
+  lastLevel: 1,
+});
+
+function blankProgress() {
+  return {
+    maxUnlocked: DEFAULT_PROGRESS.maxUnlocked,
+    cleared: [],
+    lastLevel: DEFAULT_PROGRESS.lastLevel,
+  };
+}
 
 export function loadProgress() {
   try {
     const raw = localStorage.getItem(PROGRESS_KEY);
-    if (!raw) return { ...DEFAULT_PROGRESS, cleared: [] };
+    if (!raw) return blankProgress();
     const saved = JSON.parse(raw);
     return {
-      maxUnlocked: Math.max(1, saved.maxUnlocked || 1),
-      cleared: Array.isArray(saved.cleared) ? saved.cleared : [],
-      lastLevel: saved.lastLevel || 1,
+      maxUnlocked: Math.max(1, Number(saved.maxUnlocked) || 1),
+      cleared: Array.isArray(saved.cleared)
+        ? saved.cleared.filter((id) => Number.isFinite(id))
+        : [],
+      lastLevel: Number(saved.lastLevel) || 1,
     };
   } catch (_) {
-    return { ...DEFAULT_PROGRESS, cleared: [] };
+    return blankProgress();
   }
 }
 
 export function saveProgress(progress) {
-  localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+  try {
+    localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+  } catch (err) {
+    console.warn('progress save failed', err);
+  }
 }
 
 export function markLevelCleared(progress, levelId, totalLevels) {
@@ -37,5 +55,5 @@ export function getContinueLevel(levels, progress) {
   for (const id of sorted) {
     if (id <= progress.maxUnlocked && !progress.cleared.includes(id)) return id;
   }
-  return Math.min(progress.maxUnlocked, sorted[sorted.length - 1]);
+  return Math.min(progress.maxUnlocked, sorted[sorted.length - 1] ?? 1);
 }

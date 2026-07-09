@@ -13,7 +13,7 @@
 
 ## 技術スタック
 
-- バニラ HTML / CSS / JavaScript（フレームワークなし）
+- バニラ HTML / CSS / JavaScript（ES modules、フレームワークなし）
 - データ: `levels.json`（全10レベル＋解法を内包）
 - 進行保存: `localStorage`（キー: `klotski-progress-v1`）
 - キャッシュ対策: `?v=N` クエリ + `Cache-Control: no-cache`
@@ -23,13 +23,16 @@
 ```
 klotski-puzzle/
 ├── index.html              # レベル選択画面 + ゲーム画面
-├── styles.css              # モバイル向けスタイル
+├── styles.css              # モバイル向けスタイル（CSS variables）
 ├── js/
 │   ├── main.js             # エントリポイント
-│   ├── game-controller.js  # ゲーム状態・画面遷移の統合
+│   ├── game-controller.js  # 画面・状態のオーケストレーション
 │   ├── board-logic.js      # 盤面ルール（純粋関数）
 │   ├── board-renderer.js   # 盤面 DOM 描画
-│   ├── drag-handler.js     # スワイプ操作
+│   ├── drag-handler.js     # スワイプ操作（board へイベント委譲）
+│   ├── demo-player.js      # 「参りました」正解再生
+│   ├── level-select.js     # レベル選択 UI
+│   ├── timer.js            # 経過時間タイマー
 │   ├── progress.js         # localStorage 進行管理
 │   ├── confetti.js         # クリア演出
 │   ├── dom.js              # DOM 参照
@@ -41,6 +44,19 @@ klotski-puzzle/
 ├── scripts/solve_levels.py # levels.json 再生成スクリプト
 └── HANDOFF.md              # 本ファイル
 ```
+
+## モジュール責務
+
+| モジュール | 責務 |
+|-----------|------|
+| `game-controller.js` | 画面遷移・進行・イベント結線。ルールや描画は委譲 |
+| `board-logic.js` | 衝突・移動・クリア判定（DOM 非依存） |
+| `board-renderer.js` | セル／コマの DOM 生成とサイズ計算 |
+| `drag-handler.js` | pointer イベントによるスワイプ。board に1回 attach |
+| `demo-player.js` | 正解手順のアニメ再生と abort |
+| `level-select.js` | レベルカード一覧の描画 |
+| `timer.js` | setInterval ベースの経過秒管理 |
+| `progress.js` | 解放・クリア状態の永続化 |
 
 ## 機能一覧（実装済み）
 
@@ -85,7 +101,7 @@ python3 scripts/solve_levels.py
 ## 操作・スワイプの主要パラメータ（js/constants.js）
 
 ```javascript
-const APP_VERSION = '10';
+const APP_VERSION = '11';
 const PROGRESS_KEY = 'klotski-progress-v1';
 
 TRACKING_GAIN = 1.5      // 指に対する追従速度
@@ -126,6 +142,7 @@ git add -A && git commit -m "..." && git push
 - 別の古典配置（齐头并进、兵分三路など）を独立パズルとして追加する場合は BFS が重い → 解法を事前計算して `levels.json` に埋め込む方針がよい
 - 効果音、最適手数との比較表示、星評価（手数ベース）
 - PWA化（ホーム画面追加用 manifest）
+- 盤面の差分更新（現状は毎手フル再描画。イベント委譲済みなので優先度は低め）
 
 ## 元データの場所
 
@@ -136,12 +153,11 @@ git add -A && git commit -m "..." && git push
 ## Git 履歴（主要）
 
 ```
+34875d3 app.js を ES modules にリファクタリング
+160518c 10レベル制に拡張: 段階的難易度を4段追加
 73b3c9b 6レベル制を追加: 進行解放・個別選択・正解実演を統合
 750ca32 参りましたボタン追加: 正解手順116手の実演再生
 000b374 スワイプ追従バグ修正: lostpointercapture除去・document追跡・フリック誤判定防止
-4e6b335 移動速度を約50%向上: 追従ゲイン1.5倍・判定閾値の調整
-65de78e スワイプ反応を高速化: 1:1追従・フリック判定・GPU描画
-54ca77d 盤面非表示バグ修正: キャッシュ不整合対策と初期化の堅牢化
 1e006e3 スワイプ操作に一本化: 方向パッドを削除しドラッグ追従を追加
 c9b3193 華容道パズル: 息子向けモバイル対応ウェブアプリ
 ```

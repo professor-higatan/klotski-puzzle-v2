@@ -11,9 +11,15 @@ import {
 } from './constants.js';
 import { directionFromDelta } from './board-logic.js';
 
+/**
+ * Pointer drag / swipe handler with board-level event delegation.
+ * Attach once to the board element; re-renders do not need rebinding.
+ */
 export function createDragHandler({ getStepSize, getMovableDirs, onMove, isBlocked }) {
   let activeDrag = null;
+  let boardEl = null;
   let boardPointerHandlers = null;
+  let onPointerDown = null;
 
   function clampDragOffset(movableDirs, step, axis, delta) {
     const sign = Math.sign(delta) || 1;
@@ -40,7 +46,7 @@ export function createDragHandler({ getStepSize, getMovableDirs, onMove, isBlock
       tx = clampDragOffset(movableDirs, step, 'x', dx * TRACKING_GAIN);
     } else if (axis === 'y') {
       ty = clampDragOffset(movableDirs, step, 'y', dy * TRACKING_GAIN);
-    } else if (Math.abs(dx) > 0 || Math.abs(dy) > 0) {
+    } else if (dx !== 0 || dy !== 0) {
       if (Math.abs(dx) >= Math.abs(dy)) {
         tx = clampDragOffset(movableDirs, step, 'x', dx * PRE_AXIS_FOLLOW * TRACKING_GAIN);
       } else {
@@ -61,8 +67,8 @@ export function createDragHandler({ getStepSize, getMovableDirs, onMove, isBlock
 
   function unbindBoardPointerHandlers() {
     if (!boardPointerHandlers) return;
-    const { onMove, onUp, onCancel } = boardPointerHandlers;
-    document.removeEventListener('pointermove', onMove);
+    const { onMove: move, onUp, onCancel } = boardPointerHandlers;
+    document.removeEventListener('pointermove', move);
     document.removeEventListener('pointerup', onUp);
     document.removeEventListener('pointercancel', onCancel);
     boardPointerHandlers = null;
@@ -83,7 +89,11 @@ export function createDragHandler({ getStepSize, getMovableDirs, onMove, isBlock
       const dir = directionFromDelta(dx, dy, axis);
       activeDrag = null;
       if (onMove(pieceId, dir)) {
-        try { el.releasePointerCapture(pointerId); } catch (_) {}
+        try {
+          el.releasePointerCapture(pointerId);
+        } catch (_) {
+          /* already released */
+        }
         return;
       }
     }
@@ -96,10 +106,14 @@ export function createDragHandler({ getStepSize, getMovableDirs, onMove, isBlock
     }, SNAP_BACK_MS);
 
     activeDrag = null;
-    try { el.releasePointerCapture(pointerId); } catch (_) {}
+    try {
+      el.releasePointerCapture(pointerId);
+    } catch (_) {
+      /* already released */
+    }
   }
 
-  function bindBoardPointerHandlers() {
+  function bindDocumentPointerHandlers() {
     unbindBoardPointerHandlers();
 
     const onPointerMove = (e) => {
@@ -131,6 +145,36 @@ export function createDragHandler({ getStepSize, getMovableDirs, onMove, isBlock
     boardPointerHandlers = { onMove: onPointerMove, onUp, onCancel };
   }
 
+  function beginDrag(e, el, pieceId) {
+    if (isBlocked() || activeDrag) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.preventDefault();
+
+    activeDrag = {
+      pieceId,
+      el,
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      lastX: e.clientX,
+      lastY: e.clientY,
+      startTime: performance.now(),
+      axis: null,
+      step: getStepSize(),
+      movableDirs: getMovableDirs(pieceId),
+    };
+
+    el.classList.add('dragging');
+    document.body.classList.add('is-dragging');
+    applyDragTransform(el, 0, 0);
+    try {
+      el.setPointerCapture(e.pointerId);
+    } catch (_) {
+      /* capture unsupported */
+    }
+    bindDocumentPointerHandlers();
+  }
+
   function clear() {
     unbindBoardPointerHandlers();
     if (!activeDrag) return;
@@ -147,33 +191,30 @@ export function createDragHandler({ getStepSize, getMovableDirs, onMove, isBlock
     return activeDrag !== null;
   }
 
-  function setupPieceInteraction(el, pieceId) {
-    el.addEventListener('pointerdown', (e) => {
-      if (isBlocked() || activeDrag) return;
-      if (e.pointerType === 'mouse' && e.button !== 0) return;
-      e.preventDefault();
+  /** Attach delegated pointerdown on the board (once). */
+  function attach(el) {
+    if (boardEl === el && onPointerDown) return;
 
-      activeDrag = {
-        pieceId,
-        el,
-        pointerId: e.pointerId,
-        startX: e.clientX,
-        startY: e.clientY,
-        lastX: e.clientX,
-        lastY: e.clientY,
-        startTime: performance.now(),
-        axis: null,
-        step: getStepSize(),
-        movableDirs: getMovableDirs(pieceId),
-      };
-
-      el.classList.add('dragging');
-      document.body.classList.add('is-dragging');
-      applyDragTransform(el, 0, 0);
-      try { el.setPointerCapture(e.pointerId); } catch (_) {}
-      bindBoardPointerHandlers();
-    });
+    detach();
+    boardEl = el;
+    onPointerDown = (e) => {
+      const pieceEl = e.target.closest?.('.piece');
+      if (!pieceEl || !boardEl.contains(pieceEl)) return;
+      const pieceId = pieceEl.dataset.id;
+      if (!pieceId) return;
+      beginDrag(e, pieceEl, pieceId);
+    };
+    boardEl.addEventListener('pointerdown', onPointerDown);
   }
 
-  return { setupPieceInteraction, clear, isActive };
+  function detach() {
+    clear();
+    if (boardEl && onPointerDown) {
+      boardEl.removeEventListener('pointerdown', onPointerDown);
+    }
+    boardEl = null;
+    onPointerDown = null;
+  }
+
+  return { attach, detach, clear, isActive };
 }

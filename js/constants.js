@@ -1,4 +1,6 @@
-export const APP_VERSION = '10';
+/** Cache-bust query for assets; bump on every deploy. */
+export const APP_VERSION = '11';
+
 export const PROGRESS_KEY = 'klotski-progress-v1';
 
 export const DEMO_MOVE_MS = 300;
@@ -12,9 +14,9 @@ export const PRE_AXIS_FOLLOW = 0.9;
 export const DRAG_SCALE = 1.03;
 export const SNAP_BACK_MS = 80;
 
-export const DIRS = {
-  up: { dc: 0, dr: -1 },
-  down: { dc: 0, dr: 1 },
-  left: { dc: -1, dr: 0 },
-  right: { dc: 1, dr: 0 },
-};
+export const DIRS = Object.freeze({
+  up: Object.freeze({ dc: 0, dr: -1 }),
+  down: Object.freeze({ dc: 0, dr: 1 }),
+  left: Object.freeze({ dc: -1, dr: 0 }),
+  right: Object.freeze({ dc: 1, dr: 0 }),
+});
