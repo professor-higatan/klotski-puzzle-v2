@@ -1,0 +1,27 @@
+export function queryDom() {
+  return {
+    levelSelectScreen: document.getElementById('level-select-screen'),
+    gameScreen: document.getElementById('game-screen'),
+    levelGrid: document.getElementById('level-grid'),
+    continueBtn: document.getElementById('continue-btn'),
+    backBtn: document.getElementById('back-btn'),
+    levelLabelEl: document.getElementById('level-label'),
+    levelTitleEl: document.getElementById('level-title'),
+    boardEl: document.getElementById('board'),
+    moveCountEl: document.getElementById('move-count'),
+    timerEl: document.getElementById('timer'),
+    undoBtn: document.getElementById('undo-btn'),
+    resetBtn: document.getElementById('reset-btn'),
+    winOverlay: document.getElementById('win-overlay'),
+    winLevelNameEl: document.getElementById('win-level-name'),
+    winStatsEl: document.getElementById('win-stats'),
+    nextLevelBtn: document.getElementById('next-level-btn'),
+    playAgainBtn: document.getElementById('play-again-btn'),
+    toLevelsBtn: document.getElementById('to-levels-btn'),
+    surrenderBtn: document.getElementById('surrender-btn'),
+    demoBanner: document.getElementById('demo-banner'),
+    demoStatusEl: document.getElementById('demo-status'),
+    stopDemoBtn: document.getElementById('stop-demo-btn'),
+    confettiCanvas: document.getElementById('confetti-canvas'),
+  };
+}

@@ -24,7 +24,17 @@
 klotski-puzzle/
 ├── index.html              # レベル選択画面 + ゲーム画面
 ├── styles.css              # モバイル向けスタイル
-├── app.js                  # ゲームロジック・UI・進行管理
+├── js/
+│   ├── main.js             # エントリポイント
+│   ├── game-controller.js  # ゲーム状態・画面遷移の統合
+│   ├── board-logic.js      # 盤面ルール（純粋関数）
+│   ├── board-renderer.js   # 盤面 DOM 描画
+│   ├── drag-handler.js     # スワイプ操作
+│   ├── progress.js         # localStorage 進行管理
+│   ├── confetti.js         # クリア演出
+│   ├── dom.js              # DOM 参照
+│   ├── constants.js        # 定数
+│   └── utils.js            # ユーティリティ
 ├── levels.json             # 10レベル定義＋各レベルの solution
 ├── puzzle.json             # 元の単一パズル定義（レベル6の初期配置と同等）
 ├── solution.json           # レベル6フル解法116手（levels.json 生成の元）
@@ -72,10 +82,10 @@ python3 scripts/solve_levels.py
 
 `skip` 値は `scripts/solve_levels.py` の `LEVEL_META` で調整。
 
-## 操作・スワイプの主要パラメータ（app.js）
+## 操作・スワイプの主要パラメータ（js/constants.js）
 
 ```javascript
-const APP_VERSION = '9';
+const APP_VERSION = '10';
 const PROGRESS_KEY = 'klotski-progress-v1';
 
 TRACKING_GAIN = 1.5      // 指に対する追従速度
