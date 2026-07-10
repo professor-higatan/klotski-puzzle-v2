@@ -71,15 +71,27 @@ def _s(n, col, row):
     return _p(f'yellow_{n}', 'yellow', 1, 1, col, row)
 
 
-def validate_layout(pieces: list[dict], cols: int = 4, rows: int = 5) -> None:
-    """Ensure pieces fill exactly 18 cells (20-2 empties) without overlap."""
+def validate_layout(
+    pieces: list[dict],
+    cols: int = 4,
+    rows: int = 5,
+    *,
+    exact_empties: int | None = 2,
+) -> None:
+    """Validate no overlap / in-bounds. Classic boards use exact_empties=2.
+
+    Easy sparse boards pass exact_empties=None (any free cells allowed, need ≥1 empty).
+    """
     occ = [[None] * cols for _ in range(rows)]
     filled = 0
     ids = set()
+    has_boss = False
     for p in pieces:
         if p['id'] in ids:
             raise ValueError(f'duplicate id {p["id"]}')
         ids.add(p['id'])
+        if p['id'] == 'red_boss':
+            has_boss = True
         c0, r0 = p['position']['col'], p['position']['row']
         w, h = p['width'], p['height']
         if c0 < 0 or r0 < 0 or c0 + w > cols or r0 + h > rows:
@@ -90,8 +102,13 @@ def validate_layout(pieces: list[dict], cols: int = 4, rows: int = 5) -> None:
                     raise ValueError(f'overlap {p["id"]} / {occ[r][c]} at ({c},{r})')
                 occ[r][c] = p['id']
                 filled += 1
-    if filled != cols * rows - 2:
-        raise ValueError(f'expected 18 filled cells, got {filled}')
+    if not has_boss:
+        raise ValueError('red_boss is required')
+    empties = cols * rows - filled
+    if empties < 1:
+        raise ValueError('need at least 1 empty cell')
+    if exact_empties is not None and empties != exact_empties:
+        raise ValueError(f'expected {exact_empties} empties, got {empties}')
 
 
 # Coordinates: col 0..3 left→right, row 0..4 top→bottom
@@ -264,6 +281,153 @@ CLASSIC_LAYOUTS = [
 ]
 
 
+# ── Easy pack: sparse boards, short optimal solutions ─────────────
+# Goal remains red_boss top-left at (1, 3).
+
+EASY_LAYOUTS = [
+    {
+        'id': 'easy-01',
+        'order': 1,
+        'name_ja': 'すぐそこ',
+        'name': 'Right There',
+        'description': '★を下に1マス動かすだけ！',
+        'pieces': [_boss(1, 2)],
+    },
+    {
+        'id': 'easy-02',
+        'order': 2,
+        'name_ja': 'にステップ',
+        'name': 'Two Steps',
+        'description': '下に2マス。スワイプの練習。',
+        'pieces': [_boss(1, 1)],
+    },
+    {
+        'id': 'easy-03',
+        'order': 3,
+        'name_ja': 'さんステップ',
+        'name': 'Three Steps',
+        'description': '上からまっすぐ出口まで。',
+        'pieces': [_boss(1, 0)],
+    },
+    {
+        'id': 'easy-04',
+        'order': 4,
+        'name_ja': 'みぎへどうぞ',
+        'name': 'Slide Right',
+        'description': '★を右にずらしてゴール。',
+        'pieces': [_boss(0, 3)],
+    },
+    {
+        'id': 'easy-05',
+        'order': 5,
+        'name_ja': 'ひだりへどうぞ',
+        'name': 'Slide Left',
+        'description': '★を左にずらしてゴール。',
+        'pieces': [_boss(2, 3)],
+    },
+    {
+        'id': 'easy-06',
+        'order': 6,
+        'name_ja': 'かどから',
+        'name': 'From the Corner',
+        'description': '左上から出口まで運ぼう。',
+        'pieces': [_boss(0, 0)],
+    },
+    {
+        'id': 'easy-07',
+        'order': 7,
+        'name_ja': 'じゃまなしろ',
+        'name': 'Move the Block',
+        'description': '黄色いコマをどかしてから★を動かそう。',
+        'pieces': [
+            _boss(1, 0),
+            _s(1, 1, 2),
+            _s(2, 2, 2),
+        ],
+    },
+    {
+        'id': 'easy-08',
+        'order': 8,
+        'name_ja': 'よこにずらす',
+        'name': 'Nudge Sideways',
+        'description': '出口の前に石があるよ。',
+        'pieces': [
+            _boss(1, 1),
+            _s(1, 1, 3),
+            _s(2, 2, 3),
+            _s(3, 0, 4),
+            _s(4, 3, 4),
+        ],
+    },
+    {
+        'id': 'easy-09',
+        'order': 9,
+        'name_ja': 'あおい柱',
+        'name': 'Blue Pillar',
+        'description': '青い縦長コマを動かして道をあけよう。',
+        'pieces': [
+            _boss(0, 0),
+            _v(1, 2, 0),
+            _s(1, 3, 0),
+            _s(2, 3, 1),
+            _s(3, 2, 3),
+            _s(4, 3, 3),
+        ],
+    },
+    {
+        'id': 'easy-10',
+        'order': 10,
+        'name_ja': 'よこぼう',
+        'name': 'The Bar',
+        'description': '横長の青いコマがカギ。',
+        'pieces': [
+            _boss(1, 0),
+            _h(1, 1, 2),
+            _s(1, 0, 2),
+            _s(2, 3, 2),
+            _s(3, 0, 3),
+            _s(4, 3, 3),
+        ],
+    },
+    {
+        'id': 'easy-11',
+        'order': 11,
+        'name_ja': 'ちいさな迷路',
+        'name': 'Mini Maze',
+        'description': 'コマは少ないけど順番が大事。',
+        'pieces': [
+            _boss(0, 0),
+            _v(1, 2, 0),
+            _v(2, 3, 0),
+            _h(1, 0, 2),
+            _s(1, 2, 2),
+            _s(2, 3, 2),
+            _s(3, 2, 3),
+            _s(4, 3, 4),
+        ],
+    },
+    {
+        'id': 'easy-12',
+        'order': 12,
+        'name_ja': 'もうすぐ本番',
+        'name': 'Almost Classic',
+        'description': '少し本格的。これクリアできたら次のパックへ！',
+        'pieces': [
+            _boss(1, 0),
+            _v(1, 0, 0),
+            _v(2, 3, 0),
+            _h(1, 1, 2),
+            _s(1, 0, 2),
+            _s(2, 3, 2),
+            _s(3, 0, 3),
+            _s(4, 3, 3),
+            _s(5, 1, 4),
+            _s(6, 2, 4),
+        ],
+    },
+]
+
+
 INTRO_META = [
     {
         'id': 'intro-01',
@@ -360,16 +524,24 @@ INTRO_META = [
 
 PACK_META = [
     {
-        'id': 'intro',
+        'id': 'easy',
         'order': 1,
-        'name_ja': 'はじめて',
-        'name': 'Intro',
-        'description': '横刀立馬を段階的に練習しよう',
+        'name_ja': 'かんたん',
+        'name': 'Easy',
+        'description': '短い手数でサクサク進めよう',
         'unlock': 'always',
     },
     {
-        'id': 'classics',
+        'id': 'intro',
         'order': 2,
+        'name_ja': 'はじめて',
+        'name': 'Intro',
+        'description': '横刀立馬を段階的に練習しよう',
+        'unlock': 'pack_cleared:easy',
+    },
+    {
+        'id': 'classics',
+        'order': 3,
         'name_ja': '古典の間',
         'name': 'Classics',
         'description': '有名な配置に挑戦',
@@ -379,6 +551,9 @@ PACK_META = [
 
 
 if __name__ == '__main__':
+    for layout in EASY_LAYOUTS:
+        validate_layout(layout['pieces'], exact_empties=None)
+        print(f"OK easy {layout['id']} {layout['name_ja']}")
     for layout in CLASSIC_LAYOUTS:
         validate_layout(layout['pieces'])
-        print(f"OK {layout['id']} {layout['name_ja']}")
+        print(f"OK classic {layout['id']} {layout['name_ja']}")

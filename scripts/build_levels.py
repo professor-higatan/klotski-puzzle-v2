@@ -9,6 +9,7 @@ from pathlib import Path
 from klotski_solver import apply_moves, clone_pieces, solve, verify_solution
 from layouts import (
     CLASSIC_LAYOUTS,
+    EASY_LAYOUTS,
     HENG_DAO_LI_MA,
     INTRO_META,
     PACK_META,
@@ -63,23 +64,31 @@ def build_intro(heng_solution_moves: list[dict]) -> list[dict]:
     return levels
 
 
-def build_classics() -> list[dict]:
+def build_solved_pack(layouts: list[dict], *, sparse: bool, label: str) -> list[dict]:
     levels = []
-    for meta in CLASSIC_LAYOUTS:
+    for meta in layouts:
         pieces = clone_pieces(meta['pieces'])
-        validate_layout(pieces)
+        validate_layout(pieces, exact_empties=None if sparse else 2)
         print(f"  solving {meta['id']} {meta['name_ja']} ...", flush=True)
         t0 = time.time()
         sol = solve(pieces, SHARED_BOARD)
         dt = time.time() - t0
         if not verify_solution(pieces, sol['moves'], SHARED_BOARD):
-            raise RuntimeError(f"classic verify failed: {meta['id']}")
+            raise RuntimeError(f"{label} verify failed: {meta['id']}")
         print(
             f"    -> {sol['total']} moves, nodes={sol['nodes']}, {dt:.2f}s",
             flush=True,
         )
         levels.append(level_payload(meta, pieces, sol))
     return levels
+
+
+def build_classics() -> list[dict]:
+    return build_solved_pack(CLASSIC_LAYOUTS, sparse=False, label='classic')
+
+
+def build_easy() -> list[dict]:
+    return build_solved_pack(EASY_LAYOUTS, sparse=True, label='easy')
 
 
 def main() -> None:
@@ -115,20 +124,24 @@ def main() -> None:
         intro_moves = heng_moves
         intro_optimal = heng_optimal
 
+    print('Easy pack:')
+    easy_levels = build_easy()
+
     print('Intro pack:')
     intro_levels = build_intro(intro_moves)
 
     print('Classics pack:')
     classic_levels = build_classics()
 
+    pack_levels = {
+        'easy': easy_levels,
+        'intro': intro_levels,
+        'classics': classic_levels,
+    }
+
     packs = []
     for pm in PACK_META:
-        if pm['id'] == 'intro':
-            levels = intro_levels
-        elif pm['id'] == 'classics':
-            levels = classic_levels
-        else:
-            levels = []
+        levels = pack_levels.get(pm['id'], [])
         packs.append(
             {
                 'id': pm['id'],

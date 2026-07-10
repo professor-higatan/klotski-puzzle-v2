@@ -11,32 +11,39 @@ import { PROGRESS_KEY, PROGRESS_KEY_LEGACY } from './constants.js';
  * }
  */
 
-function blankProgress(packIds = ['intro']) {
+function firstAlwaysPackId(packIds) {
+  // Prefer "easy" as the default starting pack when present.
+  if (packIds.includes('easy')) return 'easy';
+  if (packIds.includes('intro')) return 'intro';
+  return packIds[0] || 'easy';
+}
+
+function blankProgress(packIds = ['easy', 'intro']) {
+  const start = firstAlwaysPackId(packIds);
   const unlockedOrder = {};
   for (const id of packIds) {
-    unlockedOrder[id] = id === 'intro' ? 1 : 0;
+    unlockedOrder[id] = id === start ? 1 : 0;
   }
-  unlockedOrder.intro = Math.max(unlockedOrder.intro || 0, 1);
   return {
     version: 2,
     cleared: [],
     unlockedOrder,
     lastLevelId: null,
-    lastPackId: 'intro',
+    lastPackId: start,
   };
 }
 
 function normalizeV2(raw, packIds) {
   const base = blankProgress(packIds);
   const unlockedOrder = { ...base.unlockedOrder, ...(raw.unlockedOrder || {}) };
-  unlockedOrder.intro = Math.max(1, Number(unlockedOrder.intro) || 1);
   for (const id of packIds) {
     if (unlockedOrder[id] == null) {
-      unlockedOrder[id] = id === 'intro' ? 1 : 0;
+      unlockedOrder[id] = id === firstAlwaysPackId(packIds) ? 1 : 0;
     } else {
       unlockedOrder[id] = Math.max(0, Number(unlockedOrder[id]) || 0);
     }
   }
+  // Always-on packs get at least level 1 (finalized in syncWithCatalog).
   return {
     version: 2,
     cleared: Array.isArray(raw.cleared)
@@ -44,8 +51,20 @@ function normalizeV2(raw, packIds) {
       : [],
     unlockedOrder,
     lastLevelId: raw.lastLevelId ? String(raw.lastLevelId) : null,
-    lastPackId: raw.lastPackId ? String(raw.lastPackId) : 'intro',
+    lastPackId: raw.lastPackId
+      ? String(raw.lastPackId)
+      : firstAlwaysPackId(packIds),
   };
+}
+
+/** Existing players who already played intro/classics keep those packs open. */
+function hasGrandfatheredUnlock(progress, requiredPackId) {
+  if (requiredPackId === 'easy') {
+    return progress.cleared.some(
+      (id) => id.startsWith('intro-') || id.startsWith('classics-')
+    );
+  }
+  return false;
 }
 
 /**
@@ -64,6 +83,10 @@ export function migrateFromV1(v1, legacyMap, packIds) {
 
   const maxUnlocked = Math.max(1, Number(v1.maxUnlocked) || 1);
   progress.unlockedOrder.intro = maxUnlocked;
+  // Migrated players keep intro open without replaying easy.
+  if (packIds.includes('easy')) {
+    progress.unlockedOrder.easy = Math.max(progress.unlockedOrder.easy || 0, 1);
+  }
 
   if (v1.lastLevel != null) {
     const lastId = legacyMap.get(Number(v1.lastLevel));
@@ -161,7 +184,10 @@ export function isPackUnlocked(pack, progress, data) {
   if (typeof pack.unlock === 'string' && pack.unlock.startsWith('pack_cleared:')) {
     const req = pack.unlock.slice('pack_cleared:'.length);
     const reqPack = data.packs.find((p) => p.id === req);
-    return reqPack ? isPackFullyCleared(reqPack, progress) : false;
+    if (reqPack && isPackFullyCleared(reqPack, progress)) return true;
+    // Keep intro/classics open for players who already progressed before easy pack.
+    if (hasGrandfatheredUnlock(progress, req)) return true;
+    return false;
   }
   return (progress.unlockedOrder[pack.id] || 0) > 0;
 }

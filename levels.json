@@ -50,12 +50,1082 @@
   },
   "packs": [
     {
-      "id": "intro",
+      "id": "easy",
       "order": 1,
+      "name_ja": "かんたん",
+      "name": "Easy",
+      "description": "短い手数でサクサク進めよう",
+      "unlock": "always",
+      "levels": [
+        {
+          "id": "easy-01",
+          "order": 1,
+          "name_ja": "すぐそこ",
+          "name": "Right There",
+          "description": "★を下に1マス動かすだけ！",
+          "pieces": [
+            {
+              "id": "red_boss",
+              "type": "2x2",
+              "color": "red",
+              "width": 2,
+              "height": 2,
+              "position": {
+                "col": 1,
+                "row": 2
+              },
+              "movable": true,
+              "label": "★",
+              "is_goal_piece": true
+            }
+          ],
+          "solution": {
+            "moves": [
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              }
+            ],
+            "total": 1,
+            "optimal": true
+          }
+        },
+        {
+          "id": "easy-02",
+          "order": 2,
+          "name_ja": "にステップ",
+          "name": "Two Steps",
+          "description": "下に2マス。スワイプの練習。",
+          "pieces": [
+            {
+              "id": "red_boss",
+              "type": "2x2",
+              "color": "red",
+              "width": 2,
+              "height": 2,
+              "position": {
+                "col": 1,
+                "row": 1
+              },
+              "movable": true,
+              "label": "★",
+              "is_goal_piece": true
+            }
+          ],
+          "solution": {
+            "moves": [
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              }
+            ],
+            "total": 2,
+            "optimal": true
+          }
+        },
+        {
+          "id": "easy-03",
+          "order": 3,
+          "name_ja": "さんステップ",
+          "name": "Three Steps",
+          "description": "上からまっすぐ出口まで。",
+          "pieces": [
+            {
+              "id": "red_boss",
+              "type": "2x2",
+              "color": "red",
+              "width": 2,
+              "height": 2,
+              "position": {
+                "col": 1,
+                "row": 0
+              },
+              "movable": true,
+              "label": "★",
+              "is_goal_piece": true
+            }
+          ],
+          "solution": {
+            "moves": [
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              }
+            ],
+            "total": 3,
+            "optimal": true
+          }
+        },
+        {
+          "id": "easy-04",
+          "order": 4,
+          "name_ja": "みぎへどうぞ",
+          "name": "Slide Right",
+          "description": "★を右にずらしてゴール。",
+          "pieces": [
+            {
+              "id": "red_boss",
+              "type": "2x2",
+              "color": "red",
+              "width": 2,
+              "height": 2,
+              "position": {
+                "col": 0,
+                "row": 3
+              },
+              "movable": true,
+              "label": "★",
+              "is_goal_piece": true
+            }
+          ],
+          "solution": {
+            "moves": [
+              {
+                "pieceId": "red_boss",
+                "direction": "right"
+              }
+            ],
+            "total": 1,
+            "optimal": true
+          }
+        },
+        {
+          "id": "easy-05",
+          "order": 5,
+          "name_ja": "ひだりへどうぞ",
+          "name": "Slide Left",
+          "description": "★を左にずらしてゴール。",
+          "pieces": [
+            {
+              "id": "red_boss",
+              "type": "2x2",
+              "color": "red",
+              "width": 2,
+              "height": 2,
+              "position": {
+                "col": 2,
+                "row": 3
+              },
+              "movable": true,
+              "label": "★",
+              "is_goal_piece": true
+            }
+          ],
+          "solution": {
+            "moves": [
+              {
+                "pieceId": "red_boss",
+                "direction": "left"
+              }
+            ],
+            "total": 1,
+            "optimal": true
+          }
+        },
+        {
+          "id": "easy-06",
+          "order": 6,
+          "name_ja": "かどから",
+          "name": "From the Corner",
+          "description": "左上から出口まで運ぼう。",
+          "pieces": [
+            {
+              "id": "red_boss",
+              "type": "2x2",
+              "color": "red",
+              "width": 2,
+              "height": 2,
+              "position": {
+                "col": 0,
+                "row": 0
+              },
+              "movable": true,
+              "label": "★",
+              "is_goal_piece": true
+            }
+          ],
+          "solution": {
+            "moves": [
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "right"
+              }
+            ],
+            "total": 4,
+            "optimal": true
+          }
+        },
+        {
+          "id": "easy-07",
+          "order": 7,
+          "name_ja": "じゃまなしろ",
+          "name": "Move the Block",
+          "description": "黄色いコマをどかしてから★を動かそう。",
+          "pieces": [
+            {
+              "id": "red_boss",
+              "type": "2x2",
+              "color": "red",
+              "width": 2,
+              "height": 2,
+              "position": {
+                "col": 1,
+                "row": 0
+              },
+              "movable": true,
+              "label": "★",
+              "is_goal_piece": true
+            },
+            {
+              "id": "yellow_1",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 1,
+                "row": 2
+              },
+              "movable": true
+            },
+            {
+              "id": "yellow_2",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 2,
+                "row": 2
+              },
+              "movable": true
+            }
+          ],
+          "solution": {
+            "moves": [
+              {
+                "pieceId": "yellow_1",
+                "direction": "left"
+              },
+              {
+                "pieceId": "yellow_2",
+                "direction": "right"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              }
+            ],
+            "total": 5,
+            "optimal": true
+          }
+        },
+        {
+          "id": "easy-08",
+          "order": 8,
+          "name_ja": "よこにずらす",
+          "name": "Nudge Sideways",
+          "description": "出口の前に石があるよ。",
+          "pieces": [
+            {
+              "id": "red_boss",
+              "type": "2x2",
+              "color": "red",
+              "width": 2,
+              "height": 2,
+              "position": {
+                "col": 1,
+                "row": 1
+              },
+              "movable": true,
+              "label": "★",
+              "is_goal_piece": true
+            },
+            {
+              "id": "yellow_1",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 1,
+                "row": 3
+              },
+              "movable": true
+            },
+            {
+              "id": "yellow_2",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 2,
+                "row": 3
+              },
+              "movable": true
+            },
+            {
+              "id": "yellow_3",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 0,
+                "row": 4
+              },
+              "movable": true
+            },
+            {
+              "id": "yellow_4",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 3,
+                "row": 4
+              },
+              "movable": true
+            }
+          ],
+          "solution": {
+            "moves": [
+              {
+                "pieceId": "yellow_1",
+                "direction": "left"
+              },
+              {
+                "pieceId": "yellow_2",
+                "direction": "right"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              }
+            ],
+            "total": 4,
+            "optimal": true
+          }
+        },
+        {
+          "id": "easy-09",
+          "order": 9,
+          "name_ja": "あおい柱",
+          "name": "Blue Pillar",
+          "description": "青い縦長コマを動かして道をあけよう。",
+          "pieces": [
+            {
+              "id": "red_boss",
+              "type": "2x2",
+              "color": "red",
+              "width": 2,
+              "height": 2,
+              "position": {
+                "col": 0,
+                "row": 0
+              },
+              "movable": true,
+              "label": "★",
+              "is_goal_piece": true
+            },
+            {
+              "id": "blue_v1",
+              "type": "1x2",
+              "color": "blue",
+              "width": 1,
+              "height": 2,
+              "position": {
+                "col": 2,
+                "row": 0
+              },
+              "movable": true
+            },
+            {
+              "id": "yellow_1",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 3,
+                "row": 0
+              },
+              "movable": true
+            },
+            {
+              "id": "yellow_2",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 3,
+                "row": 1
+              },
+              "movable": true
+            },
+            {
+              "id": "yellow_3",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 2,
+                "row": 3
+              },
+              "movable": true
+            },
+            {
+              "id": "yellow_4",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 3,
+                "row": 3
+              },
+              "movable": true
+            }
+          ],
+          "solution": {
+            "moves": [
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              },
+              {
+                "pieceId": "yellow_3",
+                "direction": "up"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "right"
+              }
+            ],
+            "total": 5,
+            "optimal": true
+          }
+        },
+        {
+          "id": "easy-10",
+          "order": 10,
+          "name_ja": "よこぼう",
+          "name": "The Bar",
+          "description": "横長の青いコマがカギ。",
+          "pieces": [
+            {
+              "id": "red_boss",
+              "type": "2x2",
+              "color": "red",
+              "width": 2,
+              "height": 2,
+              "position": {
+                "col": 1,
+                "row": 0
+              },
+              "movable": true,
+              "label": "★",
+              "is_goal_piece": true
+            },
+            {
+              "id": "blue_h1",
+              "type": "2x1",
+              "color": "blue",
+              "width": 2,
+              "height": 1,
+              "position": {
+                "col": 1,
+                "row": 2
+              },
+              "movable": true
+            },
+            {
+              "id": "yellow_1",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 0,
+                "row": 2
+              },
+              "movable": true
+            },
+            {
+              "id": "yellow_2",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 3,
+                "row": 2
+              },
+              "movable": true
+            },
+            {
+              "id": "yellow_3",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 0,
+                "row": 3
+              },
+              "movable": true
+            },
+            {
+              "id": "yellow_4",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 3,
+                "row": 3
+              },
+              "movable": true
+            }
+          ],
+          "solution": {
+            "moves": [
+              {
+                "pieceId": "red_boss",
+                "direction": "left"
+              },
+              {
+                "pieceId": "yellow_3",
+                "direction": "down"
+              },
+              {
+                "pieceId": "yellow_1",
+                "direction": "down"
+              },
+              {
+                "pieceId": "yellow_4",
+                "direction": "down"
+              },
+              {
+                "pieceId": "yellow_2",
+                "direction": "down"
+              },
+              {
+                "pieceId": "blue_h1",
+                "direction": "right"
+              },
+              {
+                "pieceId": "blue_h1",
+                "direction": "up"
+              },
+              {
+                "pieceId": "blue_h1",
+                "direction": "up"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "right"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              }
+            ],
+            "total": 12,
+            "optimal": true
+          }
+        },
+        {
+          "id": "easy-11",
+          "order": 11,
+          "name_ja": "ちいさな迷路",
+          "name": "Mini Maze",
+          "description": "コマは少ないけど順番が大事。",
+          "pieces": [
+            {
+              "id": "red_boss",
+              "type": "2x2",
+              "color": "red",
+              "width": 2,
+              "height": 2,
+              "position": {
+                "col": 0,
+                "row": 0
+              },
+              "movable": true,
+              "label": "★",
+              "is_goal_piece": true
+            },
+            {
+              "id": "blue_v1",
+              "type": "1x2",
+              "color": "blue",
+              "width": 1,
+              "height": 2,
+              "position": {
+                "col": 2,
+                "row": 0
+              },
+              "movable": true
+            },
+            {
+              "id": "blue_v2",
+              "type": "1x2",
+              "color": "blue",
+              "width": 1,
+              "height": 2,
+              "position": {
+                "col": 3,
+                "row": 0
+              },
+              "movable": true
+            },
+            {
+              "id": "blue_h1",
+              "type": "2x1",
+              "color": "blue",
+              "width": 2,
+              "height": 1,
+              "position": {
+                "col": 0,
+                "row": 2
+              },
+              "movable": true
+            },
+            {
+              "id": "yellow_1",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 2,
+                "row": 2
+              },
+              "movable": true
+            },
+            {
+              "id": "yellow_2",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 3,
+                "row": 2
+              },
+              "movable": true
+            },
+            {
+              "id": "yellow_3",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 2,
+                "row": 3
+              },
+              "movable": true
+            },
+            {
+              "id": "yellow_4",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 3,
+                "row": 4
+              },
+              "movable": true
+            }
+          ],
+          "solution": {
+            "moves": [
+              {
+                "pieceId": "blue_h1",
+                "direction": "down"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              },
+              {
+                "pieceId": "yellow_3",
+                "direction": "down"
+              },
+              {
+                "pieceId": "blue_h1",
+                "direction": "right"
+              },
+              {
+                "pieceId": "blue_h1",
+                "direction": "right"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              },
+              {
+                "pieceId": "blue_v1",
+                "direction": "left"
+              },
+              {
+                "pieceId": "blue_v2",
+                "direction": "left"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              },
+              {
+                "pieceId": "yellow_1",
+                "direction": "left"
+              },
+              {
+                "pieceId": "yellow_2",
+                "direction": "up"
+              },
+              {
+                "pieceId": "blue_h1",
+                "direction": "up"
+              },
+              {
+                "pieceId": "yellow_3",
+                "direction": "up"
+              },
+              {
+                "pieceId": "yellow_3",
+                "direction": "right"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "right"
+              }
+            ],
+            "total": 15,
+            "optimal": true
+          }
+        },
+        {
+          "id": "easy-12",
+          "order": 12,
+          "name_ja": "もうすぐ本番",
+          "name": "Almost Classic",
+          "description": "少し本格的。これクリアできたら次のパックへ！",
+          "pieces": [
+            {
+              "id": "red_boss",
+              "type": "2x2",
+              "color": "red",
+              "width": 2,
+              "height": 2,
+              "position": {
+                "col": 1,
+                "row": 0
+              },
+              "movable": true,
+              "label": "★",
+              "is_goal_piece": true
+            },
+            {
+              "id": "blue_v1",
+              "type": "1x2",
+              "color": "blue",
+              "width": 1,
+              "height": 2,
+              "position": {
+                "col": 0,
+                "row": 0
+              },
+              "movable": true
+            },
+            {
+              "id": "blue_v2",
+              "type": "1x2",
+              "color": "blue",
+              "width": 1,
+              "height": 2,
+              "position": {
+                "col": 3,
+                "row": 0
+              },
+              "movable": true
+            },
+            {
+              "id": "blue_h1",
+              "type": "2x1",
+              "color": "blue",
+              "width": 2,
+              "height": 1,
+              "position": {
+                "col": 1,
+                "row": 2
+              },
+              "movable": true
+            },
+            {
+              "id": "yellow_1",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 0,
+                "row": 2
+              },
+              "movable": true
+            },
+            {
+              "id": "yellow_2",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 3,
+                "row": 2
+              },
+              "movable": true
+            },
+            {
+              "id": "yellow_3",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 0,
+                "row": 3
+              },
+              "movable": true
+            },
+            {
+              "id": "yellow_4",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 3,
+                "row": 3
+              },
+              "movable": true
+            },
+            {
+              "id": "yellow_5",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 1,
+                "row": 4
+              },
+              "movable": true
+            },
+            {
+              "id": "yellow_6",
+              "type": "1x1",
+              "color": "yellow",
+              "width": 1,
+              "height": 1,
+              "position": {
+                "col": 2,
+                "row": 4
+              },
+              "movable": true
+            }
+          ],
+          "solution": {
+            "moves": [
+              {
+                "pieceId": "blue_h1",
+                "direction": "down"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              },
+              {
+                "pieceId": "yellow_5",
+                "direction": "left"
+              },
+              {
+                "pieceId": "yellow_6",
+                "direction": "right"
+              },
+              {
+                "pieceId": "blue_h1",
+                "direction": "down"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              },
+              {
+                "pieceId": "blue_v1",
+                "direction": "right"
+              },
+              {
+                "pieceId": "blue_v2",
+                "direction": "left"
+              },
+              {
+                "pieceId": "yellow_1",
+                "direction": "up"
+              },
+              {
+                "pieceId": "yellow_1",
+                "direction": "up"
+              },
+              {
+                "pieceId": "yellow_2",
+                "direction": "up"
+              },
+              {
+                "pieceId": "yellow_2",
+                "direction": "up"
+              },
+              {
+                "pieceId": "yellow_3",
+                "direction": "up"
+              },
+              {
+                "pieceId": "yellow_3",
+                "direction": "up"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "left"
+              },
+              {
+                "pieceId": "yellow_4",
+                "direction": "up"
+              },
+              {
+                "pieceId": "yellow_4",
+                "direction": "up"
+              },
+              {
+                "pieceId": "yellow_6",
+                "direction": "up"
+              },
+              {
+                "pieceId": "blue_h1",
+                "direction": "right"
+              },
+              {
+                "pieceId": "yellow_5",
+                "direction": "right"
+              },
+              {
+                "pieceId": "yellow_6",
+                "direction": "up"
+              },
+              {
+                "pieceId": "blue_h1",
+                "direction": "up"
+              },
+              {
+                "pieceId": "yellow_5",
+                "direction": "right"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "down"
+              },
+              {
+                "pieceId": "yellow_5",
+                "direction": "right"
+              },
+              {
+                "pieceId": "yellow_6",
+                "direction": "left"
+              },
+              {
+                "pieceId": "yellow_6",
+                "direction": "left"
+              },
+              {
+                "pieceId": "blue_h1",
+                "direction": "up"
+              },
+              {
+                "pieceId": "red_boss",
+                "direction": "right"
+              }
+            ],
+            "total": 29,
+            "optimal": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "intro",
+      "order": 2,
       "name_ja": "はじめて",
       "name": "Intro",
       "description": "横刀立馬を段階的に練習しよう",
-      "unlock": "always",
+      "unlock": "pack_cleared:easy",
       "levels": [
         {
           "id": "intro-01",
@@ -3553,7 +4623,7 @@
     },
     {
       "id": "classics",
-      "order": 2,
+      "order": 3,
       "name_ja": "古典の間",
       "name": "Classics",
       "description": "有名な配置に挑戦",

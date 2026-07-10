@@ -1,5 +1,5 @@
 /** Cache-bust query for assets; bump on every deploy. */
-export const APP_VERSION = '12';
+export const APP_VERSION = '13';
 
 /** Progress storage keys */
 export const PROGRESS_KEY = 'klotski-progress-v2';

@@ -54,12 +54,15 @@ klotski-puzzle/
 
 | パック | ID | 内容 | 解放条件 |
 |--------|-----|------|----------|
-| はじめて | `intro` | 横刀立馬を段階的に切った10レベル | 常時 |
+| かんたん | `easy` | 空き多め・短手数の12レベル（1〜29手） | 常時 |
+| はじめて | `intro` | 横刀立馬を段階的に切った10レベル | easy 全クリア※ |
 | 古典の間 | `classics` | 古典配置6問（BFS最短） | intro 全クリア |
+
+※ intro/classics を既に遊んでいた進行は grandfather で解放維持。
 
 ### レベルID
 
-- 文字列: `intro-01` … `intro-10`, `classics-01` …
+- 文字列: `easy-01` …, `intro-01` … `intro-10`, `classics-01` …
 - intro には `legacy_numeric_id`（1–10）があり v1 進行から移行する
 
 ## levels.json の再生成
@@ -69,9 +72,9 @@ cd /Users/hidetadahigashi/klotski-puzzle
 python3 scripts/build_levels.py
 ```
 
+- easy: `layouts.py` の `EASY_LAYOUTS`（スパース配置可）を BFS
 - intro: `solution.json` と同長の116手ルートで skip 切り出し（互換）
-- classics: `layouts.py` の配置を BFS で解いて埋め込み
-- 新配置の追加: `layouts.py` の `CLASSIC_LAYOUTS` に pieces を足してビルド
+- classics: `layouts.py` の `CLASSIC_LAYOUTS` を BFS
 
 ### ソルバー単体
 
@@ -100,11 +103,19 @@ python3 scripts/layouts.py                 # 配置の重なり検証
 ## 操作パラメータ（js/constants.js）
 
 ```javascript
-APP_VERSION = '12'
+APP_VERSION = '13'
 PROGRESS_KEY = 'klotski-progress-v2'
 PROGRESS_KEY_LEGACY = 'klotski-progress-v1'
 TRACKING_GAIN = 1.5
 DEMO_MOVE_MS = 300
+```
+
+### かんたんパックの追加・調整
+
+`scripts/layouts.py` の `EASY_LAYOUTS` を編集（コマ少なめ可、`exact_empties=None`）して:
+
+```bash
+python3 scripts/build_levels.py
 ```
 
 ## デプロイ
