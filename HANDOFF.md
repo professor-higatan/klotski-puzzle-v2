@@ -2,7 +2,7 @@
 
 ## 概要
 
-息子向けの華容道（スライディングブロック）パズル。iPad/スマホ向け。元データは Obsidian の `puzzle.json`（横刀立馬配置）。
+息子向けの華容道（スライディングブロック）パズル。iPad/スマホ向け。
 
 ## 公開URL・リポジトリ
 
@@ -13,158 +13,132 @@
 
 ## 技術スタック
 
-- バニラ HTML / CSS / JavaScript（ES modules、フレームワークなし）
-- データ: `levels.json`（全10レベル＋解法を内包）
-- 進行保存: `localStorage`（キー: `klotski-progress-v1`）
-- キャッシュ対策: `?v=N` クエリ + `Cache-Control: no-cache`
+- バニラ HTML / CSS / JavaScript（ES modules）
+- データ: `levels.json` **v2**（パック + 文字列レベルID + 解法埋め込み）
+- 進行保存: `localStorage` キー `klotski-progress-v2`（v1 から自動移行）
+- キャッシュ対策: `?v=N` クエリ
 
 ## ファイル構成
 
 ```
 klotski-puzzle/
-├── index.html              # レベル選択画面 + ゲーム画面
-├── styles.css              # モバイル向けスタイル（CSS variables）
+├── index.html
+├── styles.css
+├── levels.json                 # v2: packs + levels（ビルド成果物）
+├── puzzle.json                 # 横刀立馬 元配置
+├── solution.json               # 横刀立馬 116手（intro 用フォールバック）
 ├── js/
-│   ├── main.js             # エントリポイント
-│   ├── game-controller.js  # 画面・状態のオーケストレーション
-│   ├── board-logic.js      # 盤面ルール（純粋関数）
-│   ├── board-renderer.js   # 盤面 DOM 描画
-│   ├── drag-handler.js     # スワイプ操作（board へイベント委譲）
-│   ├── demo-player.js      # 「参りました」正解再生
-│   ├── level-select.js     # レベル選択 UI
-│   ├── timer.js            # 経過時間タイマー
-│   ├── progress.js         # localStorage 進行管理
-│   ├── confetti.js         # クリア演出
-│   ├── dom.js              # DOM 参照
-│   ├── constants.js        # 定数
-│   └── utils.js            # ユーティリティ
-├── levels.json             # 10レベル定義＋各レベルの solution
-├── puzzle.json             # 元の単一パズル定義（レベル6の初期配置と同等）
-├── solution.json           # レベル6フル解法116手（levels.json 生成の元）
-├── scripts/solve_levels.py # levels.json 再生成スクリプト
-└── HANDOFF.md              # 本ファイル
+│   ├── main.js
+│   ├── game-controller.js      # 画面遷移・進行
+│   ├── board-logic.js
+│   ├── board-renderer.js
+│   ├── drag-handler.js
+│   ├── demo-player.js
+│   ├── level-select.js         # パック / レベル UI
+│   ├── levels-data.js          # levels.json v2 ヘルパ
+│   ├── timer.js
+│   ├── progress.js             # v2 + v1 移行
+│   ├── confetti.js
+│   ├── dom.js
+│   ├── constants.js
+│   └── utils.js
+├── scripts/
+│   ├── klotski_solver.py       # 単位手 BFS（形状同一視）
+│   ├── layouts.py              # 配置・パック定義
+│   ├── build_levels.py         # levels.json 生成
+│   └── solve_levels.py         # 旧名（build_levels に委譲）
+└── HANDOFF.md
 ```
 
-## モジュール責務
+## パック構成
 
-| モジュール | 責務 |
-|-----------|------|
-| `game-controller.js` | 画面遷移・進行・イベント結線。ルールや描画は委譲 |
-| `board-logic.js` | 衝突・移動・クリア判定（DOM 非依存） |
-| `board-renderer.js` | セル／コマの DOM 生成とサイズ計算 |
-| `drag-handler.js` | pointer イベントによるスワイプ。board に1回 attach |
-| `demo-player.js` | 正解手順のアニメ再生と abort |
-| `level-select.js` | レベルカード一覧の描画 |
-| `timer.js` | setInterval ベースの経過秒管理 |
-| `progress.js` | 解放・クリア状態の永続化 |
+| パック | ID | 内容 | 解放条件 |
+|--------|-----|------|----------|
+| はじめて | `intro` | 横刀立馬を段階的に切った10レベル | 常時 |
+| 古典の間 | `classics` | 古典配置6問（BFS最短） | intro 全クリア |
 
-## 機能一覧（実装済み）
+### レベルID
 
-| 機能 | 状態 |
-|------|------|
-| スワイプ操作（1.5倍追従ゲイン） | ✅ |
-| 手数・タイマー | ✅ |
-| 戻す / 最初から | ✅ |
-| 参りました（正解実演） | ✅ レベルごと |
-| 10レベル制 | ✅ |
-| クリアで次レベル解放 | ✅ |
-| 個別レベル選択 | ✅ 解放済みはいつでも |
-| 続きからボタン | ✅ |
-| クリア演出（クラッカー） | ✅ |
+- 文字列: `intro-01` … `intro-10`, `classics-01` …
+- intro には `legacy_numeric_id`（1–10）があり v1 進行から移行する
 
-## レベル構成
-
-正解手順の**後半部分**を初期盤面にした段階的難易度（`solution.json` の先頭N手を適用して生成）:
-
-| ID | 名前 | 残り手数 |
-|----|------|----------|
-| 1 | はじめの一歩 | 10手 |
-| 2 | あと少し | 15手 |
-| 3 | ゴール前 | 20手 |
-| 4 | 半分くらい | 30手 |
-| 5 | 道中 | 40手 |
-| 6 | 本番前 | 55手 |
-| 7 | 本格 | 66手 |
-| 8 | 熱くなってきた | 80手 |
-| 9 | 挑戦 | 96手 |
-| 10 | 横刀立馬 | 116手 |
-
-### levels.json の再生成
+## levels.json の再生成
 
 ```bash
 cd /Users/hidetadahigashi/klotski-puzzle
-python3 scripts/solve_levels.py
+python3 scripts/build_levels.py
 ```
 
-`skip` 値は `scripts/solve_levels.py` の `LEVEL_META` で調整。
+- intro: `solution.json` と同長の116手ルートで skip 切り出し（互換）
+- classics: `layouts.py` の配置を BFS で解いて埋め込み
+- 新配置の追加: `layouts.py` の `CLASSIC_LAYOUTS` に pieces を足してビルド
 
-## 操作・スワイプの主要パラメータ（js/constants.js）
+### ソルバー単体
 
-```javascript
-const APP_VERSION = '11';
-const PROGRESS_KEY = 'klotski-progress-v1';
-
-TRACKING_GAIN = 1.5      // 指に対する追従速度
-SWIPE_THRESHOLD = 10
-FLICK_VELOCITY = 0.4
-AXIS_LOCK = 4
-DEMO_MOVE_MS = 300       // 正解実演の1手あたり
+```bash
+python3 scripts/klotski_solver.py          # puzzle.json を解く
+python3 scripts/layouts.py                 # 配置の重なり検証
 ```
 
-## 過去に直したバグ
+単位手（1マス）最短。文献の「81手」は連続スライドを1手と数える定義。
 
-1. **盤面非表示** — HTML更新後に古い `app.js` がキャッシュされ `directionPad` が null でクラッシュ → `?v=N` で解決
-2. **スワイプ追従停止** — `lostpointercapture` がドラッグを途中終了 → 削除し `document` レベルで pointer 追跡
-3. **モッサリ感** — 閾値・ゲイン調整で改善（現在1.5倍）
-
-## localStorage の進行データ
+## 進行データ v2
 
 ```json
 {
-  "maxUnlocked": 1,
-  "cleared": [1, 2],
-  "lastLevel": 2
+  "version": 2,
+  "cleared": ["intro-01", "intro-02"],
+  "unlockedOrder": { "intro": 3, "classics": 0 },
+  "lastLevelId": "intro-02",
+  "lastPackId": "intro"
 }
 ```
 
-## デプロイ手順
+- `unlockedOrder[packId]`: そのパックで遊べる最大 `level.order`
+- 旧 `klotski-progress-v1` は初回起動時に移行
+
+## 操作パラメータ（js/constants.js）
+
+```javascript
+APP_VERSION = '12'
+PROGRESS_KEY = 'klotski-progress-v2'
+PROGRESS_KEY_LEGACY = 'klotski-progress-v1'
+TRACKING_GAIN = 1.5
+DEMO_MOVE_MS = 300
+```
+
+## デプロイ
 
 ```bash
 cd /Users/hidetadahigashi/klotski-puzzle
-# 変更後 APP_VERSION を increment（index.html の ?v= も合わせる）
+# APP_VERSION と index.html の ?v= を揃えて bump
 git add -A && git commit -m "..." && git push
-# GitHub Pages が自動デプロイ（数分待つ）
 ```
+
+## 機能一覧
+
+| 機能 | 状態 |
+|------|------|
+| スワイプ操作 | ✅ |
+| 手数・タイマー | ✅ |
+| 戻す / 最初から | ✅ |
+| 参りました（正解実演） | ✅ |
+| パック選択 UI | ✅ |
+| intro 10 + classics 6 | ✅ |
+| 進行 v2 + v1 移行 | ✅ |
+| オフライン BFS ソルバー | ✅ |
 
 ## 未着手・改善候補
 
-- レベル6の最短解は**81手**（現在116手は非最短だが確実に解けるルート）
-- 別の古典配置（齐头并进、兵分三路など）を独立パズルとして追加する場合は BFS が重い → 解法を事前計算して `levels.json` に埋め込む方針がよい
-- 効果音、最適手数との比較表示、星評価（手数ベース）
-- PWA化（ホーム画面追加用 manifest）
-- 盤面の差分更新（現状は毎手フル再描画。イベント委譲済みなので優先度は低め）
-
-## 元データの場所
-
-```
-/Users/hidetadahigashi/Library/Mobile Documents/iCloud~md~obsidian/Documents/Hidetadaのナレッジベース/puzzle.json
-```
-
-## Git 履歴（主要）
-
-```
-34875d3 app.js を ES modules にリファクタリング
-160518c 10レベル制に拡張: 段階的難易度を4段追加
-73b3c9b 6レベル制を追加: 進行解放・個別選択・正解実演を統合
-750ca32 参りましたボタン追加: 正解手順116手の実演再生
-000b374 スワイプ追従バグ修正: lostpointercapture除去・document追跡・フリック誤判定防止
-1e006e3 スワイプ操作に一本化: 方向パッドを削除しドラッグ追従を追加
-c9b3193 華容道パズル: 息子向けモバイル対応ウェブアプリ
-```
+- 効果音、星評価（手数 vs optimal）
+- PWA
+- 盤面差分更新
+- 追加古典・オリジナルパック
+- デモ再生の倍速（長手数向け）
 
 ## 新しい会話での始め方
 
 ```
-華容道パズルアプリ（https://github.com/professor-higatan/klotski-puzzle）の開発を続けたい。
-リポジトリの HANDOFF.md を読んで引き継いで。次は〇〇をやりたい。
+華容道パズル（professor-higatan/klotski-puzzle）の開発を続けたい。
+HANDOFF.md を読んで。次は〇〇をやりたい。
 ```

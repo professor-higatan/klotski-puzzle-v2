@@ -5,9 +5,16 @@ import { launchConfetti } from './confetti.js';
 import { createDemoPlayer } from './demo-player.js';
 import { createDragHandler } from './drag-handler.js';
 import { queryDom } from './dom.js';
-import { renderLevelSelect } from './level-select.js';
+import { renderLevelSelect, renderPackSelect } from './level-select.js';
 import {
-  loadProgress,
+  findLevel,
+  findPack,
+  legacyIdMap,
+  nextLevelInPack,
+} from './levels-data.js';
+import {
+  isLevelUnlocked,
+  loadProgressWithCatalog,
   markLevelCleared,
   saveProgress,
 } from './progress.js';
@@ -21,7 +28,10 @@ export class GameController {
     this.config = null;
     this.solution = null;
     this.currentLevelId = null;
-    this.progress = loadProgress();
+    this.currentPackId = null;
+    this.selectMode = 'packs'; // 'packs' | 'levels'
+    this.browsePackId = null;
+    this.progress = null;
     this.pieces = [];
     this.initialPieces = [];
     this.history = [];
@@ -68,8 +78,8 @@ export class GameController {
     });
   }
 
-  getLevel(id) {
-    return this.levelsData?.levels.find((l) => l.id === id) ?? null;
+  getLevelEntry(levelId) {
+    return findLevel(this.levelsData, levelId);
   }
 
   showScreen(name) {
@@ -91,26 +101,75 @@ export class GameController {
     });
   }
 
-  paintLevelSelect() {
-    renderLevelSelect({
-      levelGrid: this.dom.levelGrid,
-      continueBtn: this.dom.continueBtn,
-      levels: this.levelsData.levels,
+  paintSelect() {
+    if (this.selectMode === 'levels' && this.browsePackId) {
+      this.paintLevelSelect(this.browsePackId);
+    } else {
+      this.paintPackSelect();
+    }
+  }
+
+  paintPackSelect() {
+    this.selectMode = 'packs';
+    this.browsePackId = null;
+    const d = this.dom;
+    d.packBackBtn.classList.add('hidden');
+    d.selectTitle.textContent = '華容道';
+    d.selectSubtitle.textContent = 'パックを選んで★を出口まで運ぼう！';
+    d.selectHint.textContent = 'パックをクリアすると次のパックが解放されます';
+    document.title = '華容道パズル';
+
+    renderPackSelect({
+      levelGrid: d.levelGrid,
+      continueBtn: d.continueBtn,
+      data: this.levelsData,
       progress: this.progress,
-      onSelect: (id) => this.startLevel(id),
-      onContinue: (id) => this.startLevel(id),
+      onSelectPack: (packId) => this.openPack(packId),
+      onContinue: (levelId) => this.startLevel(levelId),
+    });
+  }
+
+  openPack(packId) {
+    this.browsePackId = packId;
+    this.paintLevelSelect(packId);
+  }
+
+  paintLevelSelect(packId) {
+    const pack = findPack(this.levelsData, packId);
+    if (!pack) {
+      this.paintPackSelect();
+      return;
+    }
+
+    this.selectMode = 'levels';
+    this.browsePackId = packId;
+    const d = this.dom;
+    d.packBackBtn.classList.remove('hidden');
+    d.selectTitle.textContent = pack.name_ja;
+    d.selectSubtitle.textContent = pack.description || 'レベルを選ぼう';
+    d.selectHint.textContent = 'レベルを順にクリアすると次が解放されます';
+    document.title = `華容道 — ${pack.name_ja}`;
+
+    renderLevelSelect({
+      levelGrid: d.levelGrid,
+      continueBtn: d.continueBtn,
+      pack,
+      data: this.levelsData,
+      progress: this.progress,
+      onSelect: (levelId) => this.startLevel(levelId),
+      onContinue: (levelId) => this.startLevel(levelId),
     });
   }
 
   updateLevelHeader() {
-    const level = this.getLevel(this.currentLevelId);
-    if (!level) return;
-    this.dom.levelLabelEl.textContent = `レベル ${level.id}`;
+    const entry = this.getLevelEntry(this.currentLevelId);
+    if (!entry) return;
+    const { pack, level } = entry;
+    this.dom.levelLabelEl.textContent = `${pack.name_ja} · レベル ${level.order}`;
     this.dom.levelTitleEl.textContent = level.name_ja;
-    document.title = `華容道 Lv.${level.id}`;
+    document.title = `華容道 ${level.name_ja}`;
   }
 
-  /** Shared reset of play state (not config / level id). */
   resetPlayState({ hideWinOverlay = true, restartTimer = true } = {}) {
     this.dragHandler.clear();
     this.pieces = deepClone(this.initialPieces);
@@ -130,17 +189,22 @@ export class GameController {
   }
 
   startLevel(levelId) {
-    if (levelId > this.progress.maxUnlocked) return;
-    const level = this.getLevel(levelId);
-    if (!level) return;
+    const entry = this.getLevelEntry(levelId);
+    if (!entry) return;
+
+    const { pack, level, hydrated } = entry;
+    if (!isLevelUnlocked(level, pack, this.progress, this.levelsData)) return;
 
     this.demoPlayer.stop();
     this.dragHandler.clear();
     this.currentLevelId = levelId;
-    this.config = level;
+    this.currentPackId = pack.id;
+    this.browsePackId = pack.id;
+    this.config = hydrated;
     this.solution = level.solution;
     this.initialPieces = deepClone(level.pieces);
-    this.progress.lastLevel = levelId;
+    this.progress.lastLevelId = levelId;
+    this.progress.lastPackId = pack.id;
     saveProgress(this.progress);
 
     this.updateLevelHeader();
@@ -209,23 +273,29 @@ export class GameController {
     if (!isWin(this.pieces, this.config.board.exit)) return;
     this.won = true;
     this.timer.stop();
-    markLevelCleared(
-      this.progress,
-      this.currentLevelId,
-      this.levelsData.levels.length
-    );
+    const entry = this.getLevelEntry(this.currentLevelId);
+    if (entry) {
+      markLevelCleared(
+        this.progress,
+        entry.level,
+        entry.pack,
+        this.levelsData
+      );
+    }
     this.showWin();
   }
 
   showWin() {
-    const level = this.getLevel(this.currentLevelId);
-    this.dom.winLevelNameEl.textContent = level
-      ? `レベル ${level.id}：${level.name_ja}`
+    const entry = this.getLevelEntry(this.currentLevelId);
+    this.dom.winLevelNameEl.textContent = entry
+      ? `${entry.pack.name_ja}：${entry.level.name_ja}`
       : '';
     this.dom.winStatsEl.textContent = `${this.moveCount}手 / ${formatDurationJa(this.timer.elapsed)}`;
 
-    const hasNext = this.currentLevelId < this.levelsData.levels.length;
-    this.dom.nextLevelBtn.classList.toggle('hidden', !hasNext);
+    const next = entry
+      ? nextLevelInPack(entry.pack, this.currentLevelId)
+      : null;
+    this.dom.nextLevelBtn.classList.toggle('hidden', !next);
     this.dom.winOverlay.classList.remove('hidden');
     launchConfetti(this.dom.confettiCanvas);
   }
@@ -235,7 +305,11 @@ export class GameController {
     this.dragHandler.clear();
     this.dom.winOverlay.classList.add('hidden');
     this.timer.stop();
-    this.paintLevelSelect();
+    if (this.currentPackId) {
+      this.paintLevelSelect(this.currentPackId);
+    } else {
+      this.paintPackSelect();
+    }
     this.showScreen('select');
   }
 
@@ -248,9 +322,14 @@ export class GameController {
     d.stopDemoBtn.addEventListener('click', () => this.demoPlayer.stop());
     d.backBtn.addEventListener('click', () => this.goToLevelSelect());
     d.toLevelsBtn.addEventListener('click', () => this.goToLevelSelect());
+    d.packBackBtn.addEventListener('click', () => this.paintPackSelect());
     d.nextLevelBtn.addEventListener('click', () => {
       d.winOverlay.classList.add('hidden');
-      this.startLevel(this.currentLevelId + 1);
+      const entry = this.getLevelEntry(this.currentLevelId);
+      const next = entry
+        ? nextLevelInPack(entry.pack, this.currentLevelId)
+        : null;
+      if (next) this.startLevel(next.id);
     });
 
     window.addEventListener('resize', () => {
@@ -275,24 +354,25 @@ export class GameController {
   async init() {
     try {
       showBoardStatus(this.dom.boardEl, '読み込み中…');
-      this.progress = loadProgress();
 
       const res = await fetch(`levels.json?v=${APP_VERSION}`);
       if (!res.ok) throw new Error('levels.json の読み込みに失敗しました');
 
       this.levelsData = await res.json();
-      if (!Array.isArray(this.levelsData?.levels) || this.levelsData.levels.length === 0) {
-        throw new Error('levels.json の形式が正しくありません');
+      if (
+        this.levelsData?.version !== 2 ||
+        !Array.isArray(this.levelsData?.packs) ||
+        this.levelsData.packs.length === 0
+      ) {
+        throw new Error('levels.json の形式が正しくありません（v2 packs が必要）');
       }
 
-      this.progress.maxUnlocked = Math.min(
-        this.progress.maxUnlocked,
-        this.levelsData.levels.length
-      );
+      const map = legacyIdMap(this.levelsData);
+      this.progress = loadProgressWithCatalog(this.levelsData, map);
 
       this.dragHandler.attach(this.dom.boardEl);
       this.bindEvents();
-      this.paintLevelSelect();
+      this.paintPackSelect();
       this.showScreen('select');
       this.initialized = true;
     } catch (err) {

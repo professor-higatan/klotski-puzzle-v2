@@ -85,6 +85,25 @@ body.is-dragging {
 /* ── header / typography ────────────────────────────── */
 .header {
   text-align: center;
+  width: 100%;
+}
+
+.select-header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+}
+
+.select-header-text {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.select-header-row .back-btn:not(.hidden) ~ .select-header-text {
+  text-align: left;
 }
 
 .title {
@@ -181,6 +200,24 @@ body.is-dragging {
   top: 10px;
   right: 10px;
   font-size: 1rem;
+}
+
+.level-card-progress {
+  font-size: 0.8rem;
+  color: var(--accent-gold);
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.pack-card {
+  min-height: 110px;
+  grid-column: span 2;
+}
+
+@media (min-width: 360px) {
+  .pack-card {
+    grid-column: span 1;
+  }
 }
 
 /* ── game header ────────────────────────────────────── */
